@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# =============================================================================
+# logbook — CLI dispatcher  [ENTRY POINT]
+#
+# Symlinked to ~/.local/bin/logbook by install.sh. Resolves the real tool dir
+# through the symlink, then dispatches to the scripts. `logbook path <key>` and
+# `logbook env` are the path resolvers the Claude Code skills use so they never
+# hardcode a data location.
+# =============================================================================
+set -euo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+TOOL_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
+SCRIPTS="$TOOL_DIR/scripts"
+
+usage() {
+  cat <<'EOF'
+usage: logbook <command> [args]
+
+  morning-review    interactive daily review TUI (gum)
+  status            regenerate + print today's report
+  weekly-summary    write the weekly summary into the data dir
+  backfill          re-run analysis on sessions with missing metrics
+  watch-report      evidence report for open-concerns watch items (--report: plain)
+  hook-report       per-hook telemetry health report
+  fetch-articles    refresh the suggested-articles cache
+  freeze-fixture    turn a session into a private eval-corpus fixture
+  session-start     SessionStart hook target
+  session-end       SessionEnd hook target
+  path <key>        print a data path (db|data|daily|reviewed|state|docs|concerns|watch|fixtures)
+  env               print the resolved configuration
+  doctor            health check (same as install.sh --check)
+  --version         print the tool version
+EOF
+}
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  morning-review)  exec bash "$SCRIPTS/morning-review.sh" "$@" ;;
+  status)          exec bash "$SCRIPTS/lib/daily-report.sh" "$@" ;;
+  weekly-summary)  exec bash "$SCRIPTS/weekly-summary.sh" "$@" ;;
+  backfill)        exec bash "$SCRIPTS/backfill-sessions.sh" "$@" ;;
+  watch-report)    exec bash "$SCRIPTS/watch-report.sh" "$@" ;;
+  hook-report)     exec bash "$SCRIPTS/hook-report.sh" "$@" ;;
+  fetch-articles)  exec bash "$SCRIPTS/lib/fetch-articles.sh" "$@" ;;
+  freeze-fixture)  exec bash "$SCRIPTS/freeze-fixture.sh" "$@" ;;
+  session-start)   exec bash "$SCRIPTS/session-start.sh" "$@" ;;
+  session-end)     exec bash "$SCRIPTS/session-end.sh" "$@" ;;
+  path)
+    key="${1:?usage: logbook path <db|data|daily|reviewed|state|docs|concerns|watch|fixtures>}"
+    source "$SCRIPTS/config.sh"
+    case "$key" in
+      db)       echo "$STATE_DIR/sessions.db" ;;
+      data)     echo "$DATA_DIR" ;;
+      daily)    echo "$DAILY_DIR" ;;
+      reviewed) echo "$REVIEWED_DIR" ;;
+      state)    echo "$STATE_DIR" ;;
+      docs)     echo "$DOCS_DIR" ;;
+      concerns) echo "$DOCS_DIR/open-concerns.md" ;;
+      watch)    echo "$DOCS_DIR/watch-items.json" ;;
+      fixtures) echo "$FIXTURES_DIR" ;;
+      *) echo "logbook path: unknown key '$key'" >&2; exit 1 ;;
+    esac ;;
+  env)
+    source "$SCRIPTS/config.sh"
+    printf 'TOOL_DIR=%s\nDATA_DIR=%s\nGIT_USER=%s\nPROJECTS_DIR=%s\nFIXTURES_DIR=%s\nVERSION=%s\n' \
+      "$TOOL_DIR" "$DATA_DIR" "$GIT_USER" "${PROJECTS_DIR:-}" "$FIXTURES_DIR" "$(cat "$TOOL_DIR/VERSION")" ;;
+  doctor)          exec bash "$TOOL_DIR/install.sh" --check ;;
+  --version|version) cat "$TOOL_DIR/VERSION" ;;
+  help|--help|-h)  usage ;;
+  *) echo "logbook: unknown command '$cmd'" >&2; usage >&2; exit 1 ;;
+esac
