@@ -127,7 +127,11 @@ fi
 WORKER_CRASH_DETECTED=0
 if [ -f "$LOG_FILE" ] && [ -n "$PREV_REVIEW_DATE" ]; then
   WORKER_STARTED=$(awk -v d="$PREV_REVIEW_DATE" 'substr($0,1,10) >= d && /session-end-worker: started/' "$LOG_FILE" | wc -l)
-  WORKER_DONE=$(awk -v d="$PREV_REVIEW_DATE" 'substr($0,1,10) >= d && /session-end-worker: done/' "$LOG_FILE" | wc -l)
+  # "no interaction — removing empty session" is a SUCCESSFUL early exit (the
+  # worker discards a 0-turn session) — count it as done or every empty session
+  # reads as a phantom crash (first live firing, 2026-07-08: 2 of 3 "crashes"
+  # were this shape).
+  WORKER_DONE=$(awk -v d="$PREV_REVIEW_DATE" 'substr($0,1,10) >= d && /session-end-worker: (done|no interaction)/' "$LOG_FILE" | wc -l)
   WORKER_DEATHS=$(( WORKER_STARTED - WORKER_DONE ))
   [ "$WORKER_DEATHS" -lt 0 ] && WORKER_DEATHS=0
   if [ "$WORKER_DEATHS" -gt 0 ]; then

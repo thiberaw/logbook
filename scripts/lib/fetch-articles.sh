@@ -440,38 +440,46 @@ json.dump(results[:10], sys.stdout)
 # Claude / Claude Code release notes (priority 0) are pinned at the top of the
 # morning-review article list and bypass keyword + exclusion filters below.
 
+# A source runs only when enabled: ARTICLE_SOURCES (config key
+# LOGBOOK_ARTICLE_SOURCES) is "all" or a comma-separated whitelist of the ids
+# used below. install.sh offers this list as a picker on fresh installs.
+source_enabled() {
+  [ "${ARTICLE_SOURCES:-all}" = "all" ] && return 0
+  case ",$ARTICLE_SOURCES," in *",$1,"*) return 0 ;; *) return 1 ;; esac
+}
+
 # Priority 0: Claude Code GitHub releases (canonical — docs.anthropic.com redirects here)
-merge_feed "$(fetch_claude_code_releases)"
+source_enabled claude-releases && merge_feed "$(fetch_claude_code_releases)"
 
 # Priority 0: Anthropic API release notes (platform.claude.com)
-merge_feed "$(fetch_anthropic_api_releases)"
+source_enabled claude-api-releases && merge_feed "$(fetch_anthropic_api_releases)"
 
 # Priority 0: anthropic.com/news (model launches, big announcements — Claude-filtered)
-merge_feed "$(fetch_anthropic_news)"
+source_enabled anthropic-news && merge_feed "$(fetch_anthropic_news)"
 
 # Priority 1: Anthropic Engineering Blog (HTML-scraped, no RSS)
-merge_feed "$(fetch_anthropic "https://www.anthropic.com/engineering" "engineering")"
+source_enabled anthropic-engineering && merge_feed "$(fetch_anthropic "https://www.anthropic.com/engineering" "engineering")"
 
 # Priority 1: Anthropic Research (HTML-scraped, no RSS)
-merge_feed "$(fetch_anthropic "https://www.anthropic.com/research" "research")"
+source_enabled anthropic-research && merge_feed "$(fetch_anthropic "https://www.anthropic.com/research" "research")"
 
 # Priority 1: Hacker News (pre-filtered by Algolia keyword query)
-merge_feed "$(fetch_hn)"
+source_enabled hn && merge_feed "$(fetch_hn)"
 
 # Priority 2: Addyo Substack (keyword-filtered below)
-merge_feed "$(parse_feed "https://addyo.substack.com/feed" "addyo" "addyo.substack.com" 2)"
+source_enabled addyo && merge_feed "$(parse_feed "https://addyo.substack.com/feed" "addyo" "addyo.substack.com" 2)"
 
 # Priority 3: Simon Willison (keyword-filtered below)
-merge_feed "$(parse_feed "https://simonw.substack.com/feed" "simonwillison" "simonw.substack.com" 3)"
+source_enabled simonwillison && merge_feed "$(parse_feed "https://simonw.substack.com/feed" "simonwillison" "simonw.substack.com" 3)"
 
 # Priority 4: Pragmatic Engineer (keyword-filtered below)
-merge_feed "$(parse_feed "https://newsletter.pragmaticengineer.com/feed" "pragmaticengineer" "pragmaticengineer.com" 4)"
+source_enabled pragmaticengineer && merge_feed "$(parse_feed "https://newsletter.pragmaticengineer.com/feed" "pragmaticengineer" "pragmaticengineer.com" 4)"
 
 # Priority 4: Daniel Miessler (keyword-filtered below)
-merge_feed "$(parse_feed "https://danielmiessler.com/feed.rss" "danielmiessler" "danielmiessler.com" 4)"
+source_enabled danielmiessler && merge_feed "$(parse_feed "https://danielmiessler.com/feed.rss" "danielmiessler" "danielmiessler.com" 4)"
 
 # Priority 5: r/ClaudeCode (noisy — quality-filtered below)
-merge_feed "$(parse_feed "https://www.reddit.com/r/ClaudeCode/.rss" "r-claudecode" "reddit.com/r/ClaudeCode" 5)"
+source_enabled r-claudecode && merge_feed "$(parse_feed "https://www.reddit.com/r/ClaudeCode/.rss" "r-claudecode" "reddit.com/r/ClaudeCode" 5)"
 
 # --- [keyword filter] keep only AI-coding-relevant items ---------------------
 # Keyword filter for non-HN sources. The `|`-separated string is a regex alternation

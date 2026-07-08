@@ -104,12 +104,33 @@ if [ ! -f "$CFG_FILE" ]; then
     read -r data_dir
   fi
   data_dir="${data_dir:-$default_data}"
+
+  # Article sources for the morning-review suggestions. Interactive installs
+  # get a picker over the built-in sources (all preselected); non-interactive
+  # installs default to all (tune LOGBOOK_ARTICLE_SOURCES later).
+  ALL_SOURCES=(claude-releases claude-api-releases anthropic-news anthropic-engineering anthropic-research hn addyo simonwillison pragmaticengineer danielmiessler r-claudecode)
+  article_sources=""
+  if [ -t 0 ] && command -v gum >/dev/null 2>&1; then
+    echo "Which sources should the morning review suggest articles from?"
+    echo "(space toggles, enter confirms — all selected keeps the default)"
+    picked=$(gum choose --no-limit --selected="$(IFS=,; echo "${ALL_SOURCES[*]}")" "${ALL_SOURCES[@]}" | paste -sd, -) || picked=""
+    if [ -n "$picked" ] && [ "$picked" != "$(IFS=,; echo "${ALL_SOURCES[*]}")" ]; then
+      article_sources="$picked"
+    fi
+  fi
+
   mkdir -p "$CFG_DIR"
   {
     echo "# logbook config — strict KEY=value, one per line, no quotes, no inline comments"
     echo "LOGBOOK_DATA_DIR=$data_dir"
     echo "# Uncomment to enable PR scanning over a directory holding ONLY your git repos:"
     echo "# LOGBOOK_PROJECTS_DIR=/home/you/projects"
+    if [ -n "$article_sources" ]; then
+      echo "LOGBOOK_ARTICLE_SOURCES=$article_sources"
+    else
+      echo "# Article sources (default all). Available ids:"
+      echo "# LOGBOOK_ARTICLE_SOURCES=$(IFS=,; echo "${ALL_SOURCES[*]}")"
+    fi
   } > "$CFG_FILE"
   echo "wrote $CFG_FILE"
 else

@@ -60,6 +60,7 @@ Resolution order: `LOGBOOK_DATA_DIR` env var > `~/.config/logbook/config` >
 | `LOGBOOK_PROJECTS_DIR` | directory holding *only* your git repos; enables PR scanning (unset = skipped) |
 | `LOGBOOK_GIT_USER` | git author to track (default: `git config user.name`) |
 | `LOGBOOK_FIXTURES_DIR` | private eval corpus location (default: `<data>/eval/fixtures`) |
+| `LOGBOOK_ARTICLE_SOURCES` | article sources for review suggestions: `all` (default) or a comma-separated whitelist — `install.sh` offers a picker; ids listed in `lib/fetch-articles.sh` |
 
 Example query against your own history:
 

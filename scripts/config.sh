@@ -37,7 +37,7 @@ _logbook_cfg="${XDG_CONFIG_HOME:-$HOME/.config}/logbook/config"
 if [ -f "$_logbook_cfg" ]; then
   while IFS='=' read -r k v; do
     case "$k" in
-      LOGBOOK_DATA_DIR|LOGBOOK_GIT_USER|LOGBOOK_PROJECTS_DIR|LOGBOOK_FIXTURES_DIR) ;;
+      LOGBOOK_DATA_DIR|LOGBOOK_GIT_USER|LOGBOOK_PROJECTS_DIR|LOGBOOK_FIXTURES_DIR|LOGBOOK_ARTICLE_SOURCES) ;;
       *) continue ;;                     # skips blanks, "# comment" lines, unknown keys
     esac
     [ -z "${!k:-}" ] && printf -v "$k" '%s' "$v"
@@ -69,6 +69,11 @@ DOCS_DIR="$DATA_DIR/docs"
 WEEKLY_ROOT="$DATA_DIR"
 DATA_README="$DATA_DIR/README.md"
 FIXTURES_DIR="${LOGBOOK_FIXTURES_DIR:-$DATA_DIR/eval/fixtures}"
+
+# Article sources for the morning-review suggestions: "all" (default) or a
+# comma-separated whitelist of source ids — see the [fetch all sources]
+# section of lib/fetch-articles.sh for the id list.
+ARTICLE_SOURCES="${LOGBOOK_ARTICLE_SOURCES:-all}"
 
 # Fallback repos for PR scanning (owner/repo format), used when PROJECTS_DIR
 # is unset or holds no git repos. Lives in the gitignored state dir.
