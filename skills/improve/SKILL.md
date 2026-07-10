@@ -47,6 +47,8 @@ is missing (fresh install, deleted), treat it as empty — note it, don't fail.
 - **State**: `$(logbook path state)/last-improve-date` — date of last run
 - **Article fetcher**: `logbook fetch-articles` refreshes the cache; the script lives in the tool repo at `scripts/lib/fetch-articles.sh` — read it only if the awareness lens finds article quality issues
 
+**Read discipline (added 2026-07-10 after the 07-09 \$22.44 flagged run):** read data files with the Read tool on their **real paths** — for large files (e.g. `open-concerns.md`), grep the section outline first, then Read with offset/limit. Never read content through Bash `cat` or a tool-result cache path ("Output too large, saved to <path>") — those reads do not satisfy the Edit precondition and waste a failed-Edit round-trip. Pre-read the files you will later edit (`open-concerns.md`, `watch-items.json`, `.audit-cursor`) during data gathering.
+
 ## Process
 
 ### 1. Query flagged sessions
