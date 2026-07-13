@@ -62,7 +62,8 @@ Resolution order: `LOGBOOK_DATA_DIR` env var > `~/.config/logbook/config` >
 | `LOGBOOK_FIXTURES_DIR` | private eval corpus location (default: `<data>/eval/fixtures`) |
 | `LOGBOOK_ARTICLE_SOURCES` | article sources for review suggestions: `all` (default) or a comma-separated whitelist — `install.sh` offers a picker; ids listed in `lib/fetch-articles.sh` |
 
-Example query against your own history:
+Example query against your own history (more in
+[docs/querying.md](docs/querying.md)):
 
 ```bash
 sqlite3 "$(logbook path db)" "SELECT date, name, cost FROM sessions WHERE project = 'my-project'"
