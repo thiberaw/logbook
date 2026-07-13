@@ -141,6 +141,8 @@ If the user asks a clarifying or explanatory question during the analysis (e.g. 
 
 ### 7. Present findings and get approval
 
+Open the findings message with a plain statement of what was found and what actions are proposed — keep interpretive framing in the body (a 2026-07-10 interpretive lead cost a clarification turn at the gate).
+
 Present ALL findings to the user BEFORE making any changes. For each item, show:
 - The lens that produced it (`config`, `retrospective`, `awareness`, `wide-view`, `skill-audit`)
 - The evidence (specific issue numbers, dates, costs)
