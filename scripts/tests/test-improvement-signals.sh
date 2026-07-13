@@ -4,7 +4,7 @@
 #
 # WHAT IT TESTS:  render_improvement_signals (TUI) and render_improvement_signals_md
 #                 (markdown) from lib/session-utils.sh. The morning review went
-#                 "flat" for weeks (2026-06-05..22) because its ORANGE warning
+#                 "flat" for weeks because its ORANGE warning
 #                 branch fired ONLY on the LLM `flagged` bit, which collapsed to
 #                 ~0%. The fix made orange fire on deterministic, flag-independent
 #                 signals too. This test pins that behaviour so it can't silently

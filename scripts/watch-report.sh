@@ -79,7 +79,7 @@ render_report() {   # plain, colour-free, rows-bearing — for the LLM consumer
     fi
     # Intervention ledger: if this item records a shipped change, show the honest
     # before/after around its date so the loop can see whether the change moved the
-    # metric — or whether (as with 2026-06-22) the win came from a model release.
+    # metric — or whether the win actually came from, say, a model release.
     local intervention; intervention=$(echo "$entry" | jq -c '.intervention // empty')
     if [ -n "$intervention" ]; then
       local iv_date iv_base iv_dir iv_note

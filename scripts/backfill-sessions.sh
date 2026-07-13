@@ -34,10 +34,11 @@ init_sessions_db
 
 # --- [find-empty] ------------------------------------------------------------
 # Find empty sessions (have a row but no metrics). The SQL selects finished
-# sessions recorded as 0 turns since April 2026, oldest first.
+# sessions recorded as 0 turns in the last 30 days — older transcripts no
+# longer exist to re-analyze — oldest first.
 EMPTY_SESSIONS=$(sqlite3 "$DB_PATH" "
   SELECT session_id FROM sessions
-  WHERE turns = 0 AND status = 'done' AND date >= '2026-04-01'
+  WHERE turns = 0 AND status = 'done' AND date >= date('now', '-30 days')
   ORDER BY created_at;
 ")
 

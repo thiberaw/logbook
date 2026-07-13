@@ -110,7 +110,7 @@ DOW=$(date +%u)  # 1=Monday, 7=Sunday
 
 # --- [trust checks] ----------------------------------------------------------
 # Say so up front when the data feeding this review is degraded, instead of
-# rendering gaps as quiet days (2026-06-12 review: silent failures rendered
+# rendering gaps as quiet days (silent failures once rendered
 # "no PRs" / "no flags" into immutable reviewed files).
 # 1) GitHub reachability — PR enrichment below silently falls back to "[]".
 if ! gh api rate_limit >/dev/null 2>&1; then
@@ -129,7 +129,7 @@ if [ -f "$LOG_FILE" ] && [ -n "$PREV_REVIEW_DATE" ]; then
   WORKER_STARTED=$(awk -v d="$PREV_REVIEW_DATE" 'substr($0,1,10) >= d && /session-end-worker: started/' "$LOG_FILE" | wc -l)
   # "no interaction — removing empty session" is a SUCCESSFUL early exit (the
   # worker discards a 0-turn session) — count it as done or every empty session
-  # reads as a phantom crash (first live firing, 2026-07-08: 2 of 3 "crashes"
+  # reads as a phantom crash (on this check's first live firing, 2 of 3 "crashes"
   # were this shape).
   WORKER_DONE=$(awk -v d="$PREV_REVIEW_DATE" 'substr($0,1,10) >= d && /session-end-worker: (done|no interaction)/' "$LOG_FILE" | wc -l)
   WORKER_DEATHS=$(( WORKER_STARTED - WORKER_DONE ))
@@ -169,7 +169,7 @@ mapfile -t SESSION_DATES < <(printf '%s' "$ALL_OPEN_SESSIONS" | jq -r '[.[].Date
 # Start with an empty array.
 REVIEW_DATES=()
 # Walk back day-by-day for the last 10 days. `seq 1 10` yields 1..10.
-# Weekend days are NOT skipped (changed 2026-06-12): a Saturday with sessions
+# Weekend days are NOT skipped: a Saturday with sessions
 # deserves a review on Monday — days without sessions drop out naturally via
 # the SESSION_DATES check below, so empty weekends never prompt.
 for i in $(seq 1 10); do
@@ -310,7 +310,7 @@ for REVIEW_DATE in "${REVIEW_DATES[@]+"${REVIEW_DATES[@]}"}"; do
     echo ""
 
     # Explicit flag-rate line so a day with zero flagged sessions reads as a
-    # data state rather than a broken pipeline (2026-06-10 reflection: "only
+    # data state rather than a broken pipeline (a user reflection once read: "only
     # text in gray, no warnings — something must be broken").
     FLAGGED_COUNT=$(printf '%s' "$DATE_SESSIONS" | jq '[.[] | select((.Flagged // 0) != 0 and (.Flagged // 0) != false)] | length')
     if [ "$FLAGGED_COUNT" -eq 0 ]; then
@@ -319,7 +319,7 @@ for REVIEW_DATE in "${REVIEW_DATES[@]+"${REVIEW_DATES[@]}"}"; do
       gum style --foreground 214 "$(printf "$I18N_FLAG_RATE" "$FLAGGED_COUNT" "$SESSION_COUNT")"
     fi
 
-    # Outcome distribution (2026-06-17 review: the recorded `outcome` field was
+    # Outcome distribution (the recorded `outcome` field was
     # never surfaced). Amber when any session ended non-success (partial /
     # abandoned / wrong_approach) — that's the day's real quality signal, which a
     # 0-flag day otherwise hides.
@@ -377,7 +377,7 @@ for REVIEW_DATE in "${REVIEW_DATES[@]+"${REVIEW_DATES[@]}"}"; do
         jq --arg note "$NOTE" '.reflection = {note: $note}' "$DAILY_FILE" > "$TMP" && mv "$TMP" "$DAILY_FILE"
       fi
 
-      # Flag-verdict feedback (2026-06-12): one keystroke per flagged session —
+      # Flag-verdict feedback: one keystroke per flagged session —
       # was the flag right? Stored in the flag_feedback column. This is the
       # labeled data the flag-analysis golden corpus and calibration watchdog
       # need, captured at the moment the reviewer has the most context.
@@ -416,7 +416,7 @@ for REVIEW_DATE in "${REVIEW_DATES[@]+"${REVIEW_DATES[@]}"}"; do
     "$I18N_REVIEW_LATER")
       # Defer: leave no marker, so this day reappears on the next run — but the
       # lookback window is 10 days, so a deferred day eventually drops out
-      # silently. Make that expiry visible (2026-06-12).
+      # silently. Make that expiry visible.
       DAYS_LEFT=$(( 10 - ( ( $(date -d "$TODAY" +%s) - $(date -d "$REVIEW_DATE" +%s) ) / 86400 ) ))
       gum style --foreground 81 "$(printf "$I18N_DEFER_EXPIRY" "$REVIEW_DATE" "$DAYS_LEFT")"
       ;;
@@ -486,7 +486,7 @@ fi
 
 PUSH_OK=false
 if [ "$DATA_IS_GIT" = true ] && git -C "$DATA_DIR" remote get-url origin >/dev/null 2>&1; then
-  # Push quietly. A failed push is said out loud (2026-06-12) — a silent failure
+  # Push quietly. A failed push is said out loud — a silent failure
   # here means reports the user believes are published are not.
   if git push --quiet 2>/dev/null; then
     PUSH_OK=true
@@ -506,7 +506,7 @@ if [ "$PUSH_OK" = true ] && [ -n "$GITHUB_BASE" ] && [ ${#REVIEWED_MDS[@]} -gt 0
   for md_path in "${REVIEWED_MDS[@]}"; do
     # GitHub's web/blob view can lag a push by a few seconds for a brand-new
     # path, so opening the URL the instant `git push` returns occasionally 404s
-    # (2026-06-29: reviewed/2026-06-26.md opened ~1s after push, before the web
+    # (a reviewed file once opened ~1s after push, before the web
     # view served it). Wait until the contents API reports the file on the branch
     # (the API reflects the push at once), then open. The whole wait+open runs in
     # a backgrounded subshell so the review never blocks on it; if `gh` is missing
@@ -543,16 +543,16 @@ if [ "$DOW" -eq 1 ]; then
 fi
 
 # --- [calibration watchdog] ----------------------------------------------------
-# Meta-measurement (2026-06-12): compare heuristic flag FIRES vs LLM-CONFIRMED
+# Meta-measurement: compare heuristic flag FIRES vs LLM-CONFIRMED
 # flags over the trailing 7 days. The per-day flag-rate line can't tell "zero
 # flags is real" from "the flag-analysis prompt drifted and clears everything"
-# (which is exactly what happened 2026-06-05..11). With enough fires, a confirm
+# (which has happened for a full week, unnoticed). With enough fires, a confirm
 # rate outside the 10–40% calibration band is a prompt problem, not a data state.
 CALIB=$(db_flag_calibration 7 2>/dev/null || echo "0|0")
 CAL_FIRES=${CALIB%%|*}      # text before the "|"
 CAL_CONFIRMS=${CALIB##*|}   # text after the "|"
 # Two trips. (a) fast-collapse: >=3 fires with 0 confirms is a total gate
-# failure (exactly 2026-06-05..15) — warn immediately rather than waiting for
+# failure (seen in the wild) — warn immediately rather than waiting for
 # the 5-fire statistical mass, because a broken gate ALSO starves the
 # flag-feedback loop (only flagged rows get a verdict prompt) that would gather
 # that mass, so the standard band check could stay blind for weeks. (b) band:

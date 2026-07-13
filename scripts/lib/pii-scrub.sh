@@ -4,8 +4,8 @@
 #
 # WHAT IT IS:  the single scrub applied to everything the pipeline RECORDS
 #              (DB narratives, flag analyses, first prompts, session names,
-#              PR titles) and RENDERS (reviewed/*.md reports). Added 2026-06-12
-#              after a repo-wide scrub found 7 customer names and 20+ customer
+#              PR titles) and RENDERS (reviewed/*.md reports). Added
+#              after a repo-wide scrub found customer names and customer
 #              orgs in committed reviewed files — scrubbing at write time keeps
 #              the DB and the committed markdown clean at the source.
 # SOURCED BY:  session-end-worker.sh, lib/daily-report.sh, lib/git-activity.sh,

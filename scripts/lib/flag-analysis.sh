@@ -3,7 +3,7 @@
 # flag-analysis.sh — flag-analysis prompt builder  [LIBRARY — sourced, not run]
 #
 # WHAT IT IS:  the single source of truth for the sonnet flag-analysis prompt.
-#              Extracted from session-end-worker.sh (2026-06-12) so the worker
+#              Extracted from session-end-worker.sh so the worker
 #              and the regression test (scripts/tests/test-flag-analysis.sh)
 #              exercise the EXACT same prompt — prompt edits that change flag
 #              behavior must pass the golden-corpus test before shipping.
@@ -11,19 +11,19 @@
 # PROVIDES:    build_flag_prompt — assemble the prompt from session context
 #              extract_flag_json — pull the JSON verdict out of raw LLM output
 #
-# HISTORY of the prompt's calibration (see docs/hooks-changelog.md for detail):
-#   2026-06-04  null gate moved to rule 1 (model was explaining instead of nulling)
-#   2026-06-12  GENUINE criteria + "a third are genuine" anchor (the 06-04 change
-#               over-corrected: 100% of flags were cleared for a week)
-#   2026-06-15  null-biasing lead removed (06-12 anchor didn't hold: still 0
-#               confirmed). GENUINE criteria now lead; the read-only/no-output
-#               false positives the old lead guarded against are handled
-#               deterministically by EFFECTIVE_SKILL exemptions, not this prompt.
-#   2026-06-22  model bump sonnet-4 → sonnet-4-6. Three prompt-level fixes
-#               (06-04, 06-12, 06-15) all failed to lift the confirmed-flag rate
-#               off ~0% (0/40 over 06-15..06-22). Per the meta-rule (text fix
-#               failed >=2x -> structural lever), the model is the remaining
-#               lever; the prompt is left untouched to isolate the variable.
+# CALIBRATION lessons baked into this prompt (dated history lives in the data
+# dir's hooks-changelog.md):
+#   - The null gate leads: the model explained instead of nulling until "null is
+#     a valid verdict" became rule 1 — which then over-corrected into clearing
+#     every flag, so the GENUINE criteria and the "roughly a third are genuine"
+#     anchor exist to hold the middle.
+#   - The read-only/no-output false positives an earlier null-biasing lead
+#     guarded against are handled deterministically by the EFFECTIVE_SKILL
+#     exemptions, not by this prompt.
+#   - When prompt-level fixes repeatedly fail to move the confirmed-flag rate,
+#     the model is the remaining lever (a model bump is what finally lifted the
+#     rate off ~0% after three failed prompt tweaks); leave the prompt untouched
+#     when bumping, to isolate the variable.
 # =============================================================================
 
 # The model the flag analysis runs on — shared so the regression test exercises

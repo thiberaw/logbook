@@ -44,8 +44,8 @@ REPORT_DATE="${1:-$(date +%Y-%m-%d)}"
 OUTPUT_DIR="${2:-$REVIEWED_DIR}"
 
 # Guard: never default today's report into reviewed/. A reviewed/<date>.md marks
-# the day as reviewed, so morning-review skips it forever — on 2026-06-04 a
-# mid-day run wrote reviewed/2026-06-04.md at 15:19 and the afternoon's 4
+# the day as reviewed, so morning-review skips it forever — a mid-day run once
+# wrote the day's reviewed file early and that afternoon's
 # sessions were never reviewed. Writing today into reviewed/ now requires
 # passing the directory explicitly as $2; default invocations land in a
 # preview dir instead.
@@ -62,7 +62,7 @@ DAILY_FILE="$DAILY_DIR/$REPORT_DATE.json"    # the day's JSON metadata file
 MD_FILE="$OUTPUT_DIR/$REPORT_DATE.md"        # the markdown file we will produce
 
 # Guard: reviewed/<date>.md is immutable history (immutable by design). An
-# unnoticed regeneration is how the 2026-06-10 "review decay" contamination
+# unnoticed regeneration is how a "review decay" contamination once
 # stayed invisible — refuse to overwrite an existing reviewed report unless the
 # caller opts in deliberately with LOGBOOK_ALLOW_REGEN=1.
 if [ "$OUTPUT_DIR" = "$REVIEWED_DIR" ] && [ -f "$MD_FILE" ] && [ "${LOGBOOK_ALLOW_REGEN:-0}" != "1" ]; then
@@ -86,7 +86,7 @@ SESSIONS=$(db_query_sessions_for_date "$REPORT_DATE")  # JSON array of session r
 
 # --- [sanitize URLs + PII] -------------------------------------------------------
 # Scrub customer-identifying data from the rendered markdown before it is
-# committed. The repo is private today (verified 2026-06-12), but treat the
+# committed. The data repo may be private today, but treat the
 # committed file as potentially shareable: visibility is one setting away.
 # Three layers: (1) the LLM prompts forbid customer names/emails/orgs at the
 # source; (2) the worker scrubs everything at DB-write time; (3) this final
@@ -158,7 +158,7 @@ source "$SCRIPT_DIR/lib/pii-scrub.sh"
       # ## Outcome / ## Friction / ## Improvement Signal). The bullet wants only
       # the one-sentence Goal — slice it out the same way render_improvement_signals
       # slices ## Improvement Signal, else the raw heading + Approach text leaks into
-      # the bullet and the 80-char truncator cuts mid-word (2026-06-15 reflection).
+      # the bullet and the 80-char truncator cuts mid-word.
       (.Name // "session") as $name |
       (.Description // "") as $full |
       (if ($full | test("## Goal")) then
@@ -170,8 +170,8 @@ source "$SCRIPT_DIR/lib/pii-scrub.sh"
       (.Skill // null) as $skill |
       # Outcome badge: only surface non-success outcomes (partial / abandoned /
       # wrong_approach). Rendering "success" on every bullet is noise; a
-      # non-success badge is the signal that earns a second look (the #8251
-      # spiral was recorded as "abandoned" but never shown — 2026-06-17 review).
+      # non-success badge is the signal that earns a second look (an abandoned
+      # review spiral was once recorded but never shown).
       (.Outcome // "") as $outcome |
       (if ($outcome != "" and $outcome != "success") then " ⚠ _\($outcome)_" else "" end) as $badge |
       # Low-confidence narratives contradict the deterministic facts
@@ -207,13 +207,13 @@ source "$SCRIPT_DIR/lib/pii-scrub.sh"
     fi
 
     # Flag-rate line: makes a zero-flag day legible as a data state (nothing met
-    # flag criteria) rather than a silent analysis failure (2026-06-10 reflection).
+    # flag criteria) rather than a silent analysis failure.
     FLAGGED_COUNT=$(printf '%s' "$SESSIONS" | jq '[.[] | select((.Flagged // 0) != 0 and (.Flagged // 0) != false)] | length')
     echo ""
     echo "_Flagged: ${FLAGGED_COUNT} of ${SESSION_COUNT} sessions_"
 
     # Outcome distribution: the per-session `outcome` label is recorded for every
-    # session but was never surfaced (2026-06-17 review). One line makes "how did
+    # session but used to go unsurfaced. One line makes "how did
     # the day go" legible — and names the non-success sessions explicitly.
     OUTCOMES=$(printf '%s' "$SESSIONS" | jq -r '
       [.[] | .Outcome // "" | select(. != "")] | group_by(.) |

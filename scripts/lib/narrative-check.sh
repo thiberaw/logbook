@@ -8,7 +8,7 @@
 #              results (see transcript-analyzer.py), so it confabulates:
 #              confident, specific, and sometimes wrong. This catches the
 #              checkable contradictions so a low-confidence narrative can be
-#              marked instead of trusted (2026-06-17 quality review).
+#              marked instead of trusted.
 # SOURCED BY:  session-end-worker.sh (to set a confidence marker), and the
 #              prototype demo runner.
 # PROVIDES:    validate_narrative — print "high"/"low" + the contradictions
@@ -40,10 +40,10 @@ validate_narrative() {
   # 1. Claims nothing shipped, but artifacts exist. "nothing shipped" is the
   #    narrative prompt's own suggested phrase for the Outcome section, so we
   #    scan ONLY that section: Goal/Approach routinely QUOTE other sessions'
-  #    states when the narrative describes adjudication work (2026-07-07: the
-  #    /improve narrative quoted "files modified but no commits" about the
+  #    states when the narrative describes adjudication work (an /improve
+  #    narrative once quoted "files modified but no commits" about the
   #    sessions it was reviewing and drew a bogus low despite citing its own
-  #    real commit 7f862b1). Narratives without an Outcome header fall back
+  #    real commit). Narratives without an Outcome header fall back
   #    to whole-text scanning.
   local outcome
   outcome=$(printf '%s' "$nl" | sed -n '/^## outcome/,/^## /p')
@@ -62,20 +62,20 @@ validate_narrative() {
   # 3. Cites a commit hash that does not exist in the repo at all (a true
   #    confabulation). A hash from a PRIOR session is still real and legitimate
   #    context — narratives in a self-referential repo routinely reference recent
-  #    commits — so we only flag hashes that resolve nowhere. (2026-06-18: the
-  #    session cited two real prior repo commits, and was
+  #    commits — so we only flag hashes that resolve nowhere. (A session once
+  #    cited two real prior repo commits, and was
   #    wrongly marked unverified because they weren't from this session.)
   #    Only runs when we were handed the session's hash list (else we can't judge).
-  #    2026-06-25: also probe ~/.claude — /improve (and any data-repo session)
+  #    Also probe ~/.claude — /improve (and any data-repo session)
   #    routinely applies findings to the claude-settings repo, so cited hashes
-  #    can legitimately live there rather than in the session's CWD repo (d7af5ec
-  #    was a real ~/.claude commit wrongly flagged as confabulation).
+  #    can legitimately live there rather than in the session's CWD repo (a real
+  #    ~/.claude commit was once wrongly flagged as confabulation).
   if [ -n "$known_hashes" ]; then
     local h probe_dirs=("$repo_dir" "$HOME/.claude")
     # Pure-decimal tokens (customer/user IDs, counts, byte sizes) are valid hex
     # but are not commits — grep -v them out, or a 7-digit ID like a user ID
-    # gets probed as a hash and flagged "not found" (2026-07-01: operations cited
-    # user ID 1274923 and drew a bogus "cites commit 1274923 not found" low).
+    # gets probed as a hash and flagged "not found" (a narrative once cited a
+    # 7-digit user ID and drew a bogus "cites commit <id> not found" low).
     for h in $(printf '%s' "$n" | grep -oE '\b[0-9a-f]{7,40}\b' | grep -vE '^[0-9]+$' | sort -u); do
       # match on shared 7-char prefix in either direction (abbrev hashes vary)
       local short="${h:0:7}" found=0 kh d
@@ -95,7 +95,7 @@ validate_narrative() {
 
   # 4. Outcome verdict contradicts a no-op session: a 0-turn / 0-tool-call
   #    session can't have been "abandoned" or "wrong_approach" — nothing was
-  #    attempted (a 0-turn /exit row mislabelled "abandoned", 2026-06-17).
+  #    attempted (a 0-turn /exit row once mislabelled "abandoned").
   if [ "${turns:-0}" -eq 0 ] && [ "${calls:-0}" -eq 0 ] \
      && { [ "$outcome" = "abandoned" ] || [ "$outcome" = "wrong_approach" ]; }; then
     reasons+=("outcome='${outcome}' on a 0-turn/0-call session (nothing attempted)")

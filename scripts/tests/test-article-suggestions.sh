@@ -3,7 +3,7 @@
 # test-article-suggestions.sh — stale re-surfacing fallback  [TEST]
 #
 # WHAT IT TESTS:  _select_articles + _write_articles_to_daily from
-#                 lib/article-suggestions.sh, focusing on the 2026-07-03
+#                 lib/article-suggestions.sh, focusing on the
 #                 stale-fallback: when every non-release article in the cache
 #                 has already been seen, the day should still surface the top
 #                 articles tagged {stale:true} instead of a blank section —

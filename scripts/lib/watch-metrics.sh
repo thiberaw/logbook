@@ -87,7 +87,7 @@ wm_confirmed_flag_rate() {
 # reflection loop measuring its own overhead: the answer to "how much of the spend
 # is signal vs ceremony?". PARAMS: {ceiling} (fraction, default 0.03) — in_target
 # when the ratio stays at or below the ceiling.
-# meta_cost is populated going forward only (2026-07-01+): a window whose sessions
+# meta_cost is populated going forward from instrumentation only: a window whose sessions
 # all predate instrumentation sums to 0 and is reported UNMEASURED — never a false
 # "0% overhead" (the never-false-0 convention). All windows unmeasured -> unavailable.
 wm_meta_cost_ratio() {
@@ -119,7 +119,7 @@ wm_meta_cost_ratio() {
 "
   done <<< "$dates"
   if [ "$total" -eq 0 ]; then
-    _wm_emit unavailable null "$computed" "no window has meta_cost yet (instrumented 2026-07-01)" ""
+    _wm_emit unavailable null "$computed" "no window has meta_cost yet (populated going forward only)" ""
     return
   fi
   local ceilpct it
@@ -130,9 +130,9 @@ wm_meta_cost_ratio() {
 
 # wm_confirmed_flag_rate_split DATE — the confirmed-flag rate over all sessions
 # BEFORE vs ON/AFTER a date. Powers the intervention before/after in watch-report:
-# e.g. did the 2026-06-22 sonnet-4→4-6 bump lift the rate off the "0/40 confirmed"
-# baseline? Prints one line: "before <C/F (P%)> · after <C/F (P%)>". Only the
-# heuristic_flagged era (2026-06-12+) carries fires, so a split date before that
+# e.g. did a model bump (rather than the prompt tweaks before it) lift the rate
+# off a flat baseline? Prints one line: "before <C/F (P%)> · after <C/F (P%)>". Only
+# rows from after the heuristic_flagged column existed carry fires, so a split date before that
 # has an empty before-side — which is itself honest about what's measurable.
 wm_confirmed_flag_rate_split() {
   local date="$1" bf bc af ac bp="n/a" ap="n/a"

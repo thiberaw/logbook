@@ -3,8 +3,8 @@
 # test-flag-analysis.sh — golden-corpus regression test for the flag analysis
 #
 # WHAT IT IS: the regression gate for the sonnet flag-analysis prompt in
-#   lib/flag-analysis.sh. Three measurement incidents (2026-06-02 inflation,
-#   2026-06-04 regression, 2026-06-05..11 a week of 100% flag-clearing) all
+#   lib/flag-analysis.sh. Three measurement incidents (a metrics inflation, a
+#   gating regression, and a week of 100% flag-clearing) all
 #   shipped through prompt/heuristic edits validated only by spot checks.
 #   The corpus lives in fixtures/flag-corpus.tsv; the engine (run_corpus,
 #   _majority_label, print_scorecard) lives in lib/flag-eval.sh.

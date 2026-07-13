@@ -65,7 +65,7 @@ ACTIVE_FILE="$STATE_DIR/active-session.json"  # snapshot of the live session
 
 # Under `set -e` an unexpected failure kills this background worker silently —
 # the session row then stays an empty stub and gets pruned, erasing the session
-# (this is how the flagged $76 session vanished on 2026-06-09). Log the abort
+# (a flagged high-cost session once vanished exactly this way). Log the abort
 # point so any future death leaves a trace in logbook.log.
 trap 'log_error "worker aborted at line $LINENO (exit=$?) session=${SESSION_ID:-?}"' ERR
 
@@ -161,16 +161,16 @@ fi
 # [skill detect] --------------------------------------------------------------
 # Scrub PII from the raw prompt BEFORE anything derives from it (the session
 # name/title and the first_prompt column both inherit this). User prompts
-# routinely carry customer ticket URLs, names, and emails (2026-06-12 scrub).
+# routinely carry customer ticket URLs, names, and emails.
 if [ -n "$FIRST_PROMPT" ]; then
   FIRST_PROMPT=$(printf '%s' "$FIRST_PROMPT" | scrub_pii)
 fi
 
 # Detect skill invocation. FIRST_PROMPT is one of two shapes:
 #   - readable slash-command form "/review-pr <args>" (transcript-analyzer's
-#     parse_slash_command, added 2026-06-02) — the common case now;
+#     parse_slash_command) — the common case now;
 #   - legacy skill-body injection "Base directory for this skill: ... # /review-pr — ".
-# Match both. (The 2026-06-02 change to surface slash commands silently broke the
+# Match both. (The change to surface slash commands silently broke the
 # legacy-only detection, bypassing the read-only-skill exemptions below and
 # re-flagging /review-pr sessions on no-output/thrashing — see open-concerns.)
 SKILL_NAME=""
@@ -189,8 +189,8 @@ fi
 # Resolve the effective skill for flagging decisions. Prefer the value the live
 # SessionStart tracking already wrote to the DB `skill` column; fall back to the
 # transcript-derived SKILL_NAME when tracking didn't fire (it is Claude-dependent
-# and can be empty — e.g. #2434). Keying the read-only-skill exemptions off this
-# combined value makes them robust to BOTH failure modes seen on 2026-06-04:
+# and can be empty). Keying the read-only-skill exemptions off this
+# combined value makes them robust to BOTH failure modes seen in the wild:
 # FIRST_PROMPT-format changes that broke derivation, and missing live-tracking
 # writes that left the column empty.
 # `db_get_field` reads the skill column the live SessionStart tracking may have
@@ -370,7 +370,7 @@ if [ "$METRICS" != "{}" ]; then
   # Thrashing: high turn count relative to output
   # Skip for read-only skills — PR reviews / ticket analyses legitimately run
   # many turns and produce 0 files; flagging them on turn count alone is the
-  # false-positive source for /review-pr sessions (see open-concerns 2026-06-02).
+  # false-positive source for /review-pr sessions.
   if [[ "$EFFECTIVE_SKILL" =~ ^(review-pr|analyze-ticket|explain-changes|investigate-ci|investigate-ticket)$ ]]; then
     : # read-only skill — high turn / low file count is expected
   elif [ "$TOTAL_TURNS" -ge 12 ] && [ "$FILES_MODIFIED_COUNT" -le 1 ]; then
@@ -401,7 +401,7 @@ fi
 
 # Remember the heuristic verdict BEFORE the LLM pass can clear it — written to
 # the heuristic_flagged column so the morning-review calibration watchdog can
-# compare "heuristic fires" vs "LLM confirms" over time (2026-06-12: a prompt
+# compare "heuristic fires" vs "LLM confirms" over time (a prompt
 # change silently zeroed the confirm rate for a week with no aggregate signal).
 HEURISTIC_FLAGGED_INT=0
 [ "$FLAGGED" = true ] && HEURISTIC_FLAGGED_INT=1
@@ -414,9 +414,9 @@ if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
   CONDENSED=$(python3 "$SCRIPT_DIR/lib/transcript-analyzer.py" --condensed "$TRANSCRIPT_PATH" 2>/dev/null || echo "")
   # Hard-cap at 15000 chars to bound the LLM prompt size/cost. Must be bash
   # substrings, NOT `printf | head -c`: under pipefail, head exiting early sends
-  # printf a SIGPIPE that kills the whole worker (lost a flagged $76 session on
-  # 2026-06-09 — exactly the big transcripts this cap exists for).
-  # Head+tail sampling (2026-06-12): a first-15K-only cut meant long sessions
+  # printf a SIGPIPE that kills the whole worker (once lost a flagged high-cost
+  # session — exactly the big transcripts this cap exists for).
+  # Head+tail sampling: a first-15K-only cut meant long sessions
   # were judged by how they BEGAN — end-of-session friction (where abandonment
   # happens) was truncated away. Keep the first 9K + the last 6K instead.
   if [ ${#CONDENSED} -gt 15000 ]; then
@@ -427,8 +427,8 @@ ${CONDENSED: -6000}"
   fi
 fi
 
-# [ground truth] Deterministic anchors the LLMs must not contradict (2026-06-17
-# evidence-grounding review). The condensed trace is a lossy head+tail sample
+# [ground truth] Deterministic anchors the LLMs must not contradict
+# (evidence grounding). The condensed trace is a lossy head+tail sample
 # with no tool results, so the narrative confabulates — claims "nothing shipped"
 # when commits exist, cites hashes that aren't real. Prepend the metrics-derived
 # facts (commits with real hashes, file/error/test counts) so every claim is
@@ -453,12 +453,12 @@ fi
 
 # [narrative] -----------------------------------------------------------------
 # --- LLM narrative (runs for ALL sessions with a transcript) ---
-# Model is parameterized (2026-06-17 review): the everyday narrative — the
+# Model is parameterized: the everyday narrative — the
 # signal the user actually reads each morning — was on the cheapest model while
 # the better model (sonnet) was reserved for the near-always-empty flag channel.
 # Override with NARRATIVE_MODEL to A/B a stronger model on substantive sessions.
 # Substantive sessions earn the stronger model; trivial ones stay cheap. The
-# sonnet demo (2026-06-17) pinned root causes from the trace that haiku missed,
+# sonnet demo pinned root causes from the trace that haiku missed,
 # but it's a per-session cost — so gate it: >=20 turns OR >=$5 estimated cost.
 # An explicit NARRATIVE_MODEL in the environment overrides the gate (for A/B).
 if [ -z "${NARRATIVE_MODEL:-}" ]; then
@@ -534,7 +534,7 @@ The JSON line MUST be the very last line of output."
   rm -f "$ERR_TMP"
 
   # Parse the envelope. If it isn't valid JSON (CLI format drift), fall back to
-  # the raw text and a 0 cost — degrade, never crash the worker (2026-06-26 lesson).
+  # the raw text and a 0 cost — degrade, never crash the worker.
   if NARRATIVE=$(printf '%s' "$RAW_NARRATIVE" | jq -er '.result' 2>/dev/null); then
     NARR_COST=$(printf '%s' "$RAW_NARRATIVE" | jq -r '.total_cost_usd // 0' 2>/dev/null)
   else
@@ -655,7 +655,7 @@ fi
 [ -n "$TASK_TYPE" ] && db_update_field "$SESSION_ID" "task_type" "$TASK_TYPE"
 [ -n "$OUTCOME" ] && db_update_field "$SESSION_ID" "outcome" "$OUTCOME"
 
-# Cross-check the narrative against deterministic facts (2026-06-17). The
+# Cross-check the narrative against deterministic facts. The
 # narrative is haiku working from a lossy trace, so it confabulates — this
 # marks contradictions (cited-but-nonexistent commits, "nothing shipped" with
 # commits present, an "abandoned" verdict on a no-op session) so the review can

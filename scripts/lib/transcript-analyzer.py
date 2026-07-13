@@ -419,7 +419,7 @@ def extract_condensed(path: str) -> str:
 
             # Collect tool results (chronologically). Errors get the loud ERROR
             # marker; successful results get a terse "⤷" outcome line so the
-            # analysis LLM sees consequences, not just actions (2026-06-17).
+            # analysis LLM sees consequences, not just actions.
             for block in blocks:
                 if isinstance(block, dict) and block.get("type") == "tool_result":
                     res_content = block.get("content", "")
@@ -501,7 +501,7 @@ def _summarize_tool_call(name: str, inp: dict) -> str:
 
 
 def _summarize_tool_result(content, is_error: bool) -> str:
-    """One-line summary of a tool RESULT (2026-06-17 evidence-grounding review).
+    """One-line summary of a tool RESULT (evidence grounding).
 
     The condensed trace used to drop every result except errors, so the analysis
     LLM saw actions without consequences — it knew Claude read a file but not

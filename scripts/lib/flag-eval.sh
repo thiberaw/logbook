@@ -13,7 +13,7 @@
 # =============================================================================
 
 # _one_verdict — single model run; prints "confirm", "clear", or "invalid".
-# Ported verbatim from test-flag-analysis.sh (2026-06-29) — no behavior change.
+# Ported verbatim from test-flag-analysis.sh — no behavior change.
 _one_verdict() {
   local prompt="$1" raw json issue
   raw=$(echo "$prompt" | LOGBOOK_ANALYZER=1 claude --print --model "$FLAG_ANALYSIS_MODEL")

@@ -70,19 +70,19 @@ SQL
   sqlite3 "$DB_PATH" "ALTER TABLE sessions ADD COLUMN first_prompt TEXT DEFAULT '';" 2>/dev/null || true
   sqlite3 "$DB_PATH" "ALTER TABLE sessions ADD COLUMN task_type TEXT DEFAULT '';" 2>/dev/null || true
   sqlite3 "$DB_PATH" "ALTER TABLE sessions ADD COLUMN outcome TEXT DEFAULT '';" 2>/dev/null || true
-  # 2026-06-12: heuristic_flagged = the pre-LLM flag verdict (the sonnet pass may
+  # heuristic_flagged = the pre-LLM flag verdict (the sonnet pass may
   # clear `flagged` but never touches this), feeding the calibration watchdog;
   # flag_feedback = the user's morning-review verdict on a flag ('correct'/'wrong'),
   # accumulating labeled data for the flag-analysis golden corpus.
   sqlite3 "$DB_PATH" "ALTER TABLE sessions ADD COLUMN heuristic_flagged INTEGER DEFAULT 0;" 2>/dev/null || true
   sqlite3 "$DB_PATH" "ALTER TABLE sessions ADD COLUMN flag_feedback TEXT DEFAULT '';" 2>/dev/null || true
-  # 2026-06-17: narrative_confidence ('high'/'low') = deterministic cross-check of
+  # narrative_confidence ('high'/'low') = deterministic cross-check of
   # the LLM narrative against known metrics (lib/narrative-check.sh); a 'low'
   # narrative contradicts the facts (e.g. cites a commit that doesn't exist) and
   # should be marked, not trusted. narrative_issues holds the contradictions.
   sqlite3 "$DB_PATH" "ALTER TABLE sessions ADD COLUMN narrative_confidence TEXT DEFAULT '';" 2>/dev/null || true
   sqlite3 "$DB_PATH" "ALTER TABLE sessions ADD COLUMN narrative_issues TEXT DEFAULT '';" 2>/dev/null || true
-  # 2026-07-01: meta_cost = the pipeline's OWN spend on this session (the haiku
+  # meta_cost = the pipeline's OWN spend on this session (the haiku
   # narrative + sonnet flag-analysis calls in session-end-worker.sh). The `cost`
   # column tracks only the user's interactive session; meta_cost makes the
   # self-reflection overhead visible so watch-metrics can report it as a fraction
@@ -138,9 +138,9 @@ db_delete_session() {
 # db_delete_empty_sessions — prune rows that finished ('done') but recorded no
 # real activity (no duration/cost/description/prompt) — e.g. instant /exit
 # sessions — so they don't clutter the morning review.
-# 48h age guard (2026-06-12): a worker crash leaves exactly this row shape, and
-# pruning it destroys the only evidence the session existed (how the flagged
-# $76.83 session vanished on 2026-06-09). Recent stubs stay visible so a death
+# 48h age guard: a worker crash leaves exactly this row shape, and
+# pruning it destroys the only evidence the session existed (a flagged
+# high-cost session once vanished exactly this way). Recent stubs stay visible so a death
 # can be noticed and backfilled (scripts/backfill-sessions.sh) before pruning.
 db_delete_empty_sessions() {
   sqlite3 "$DB_PATH" "

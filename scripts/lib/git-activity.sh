@@ -17,9 +17,9 @@
 _GIT_ACTIVITY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Pull in shared config (defines GIT_USER, repo detection helpers, etc.).
 source "$_GIT_ACTIVITY_DIR/../config.sh"
-# PII scrub — PR titles routinely name customers ("SUP-452 Delete blocking
+# PII scrub — PR titles routinely name customers ("TICKET-123 Delete blocking
 # draft for <org>") and the scanned PR data is written into committed daily
-# JSON, so scrub it at fetch time (2026-06-12).
+# JSON, so scrub it at fetch time.
 source "$_GIT_ACTIVITY_DIR/pii-scrub.sh"
 
 # --- _fetch_prs (private) ----------------------------------------------------

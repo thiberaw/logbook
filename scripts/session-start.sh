@@ -60,7 +60,7 @@ mkdir -p "$STATE_DIR"
 [ -f "$STATE_FILE" ] || echo '{}' > "$STATE_FILE"
 
 # Full ISO timestamp stays UTC (machine record); the `date` column uses the
-# LOCAL date (2026-06-12 fix) so day boundaries match the morning review —
+# LOCAL date so day boundaries match the morning review —
 # with -u, sessions started 00:00–02:00 CEST landed on the previous day.
 STARTED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 TODAY=$(date +"%Y-%m-%d")
@@ -91,7 +91,7 @@ jq --arg sid "$SESSION_ID" \
 
 # [prune-daily] ---------------------------------------------------------------
 # Delete daily JSON files older than 12 days so the daily/ dir doesn't grow
-# forever. 12, not 8 (2026-06-12 fix): the morning-review lookback is 10 days,
+# forever. 12, not 8: the morning-review lookback is 10 days,
 # and an 8-day prune deleted intention/reflection/PR data for days that were
 # still reviewable (deferred days lost their context).
 CUTOFF_DATE=$(portable_date "-12 days" "%Y-%m-%d")
@@ -163,7 +163,7 @@ jq -n \
 # up to the closing token as the command's input; because the token is NOT
 # quoted, ${SESSION_ID}, ${PROJECT_NAME} and ${DB_PATH} are substituted with
 # their real values before the text is emitted.
-# Kept deliberately short (2026-06-12): this text is paid context in EVERY
+# Kept deliberately short: this text is paid context in EVERY
 # session of EVERY project. Metrics, name, description, and branch are all
 # populated by session-end.sh from the transcript; the one live update that is
 # load-bearing is the `skill` column — it feeds the worker's read-only-skill

@@ -53,7 +53,7 @@ render_session_list() {
     # ## Outcome / ## Friction / ## Improvement Signal). Show only the one-line
     # ## Goal — dumping $s.Description raw leaks the "## Goal" heading and bleeds
     # into ## Approach when the goal is short (TUI counterpart of the daily-report
-    # bullet extraction; 2026-06-22 review found this function never extracted).
+    # bullet extraction; a review found this function never extracted).
     ($s.Description // "") as $full |
     (if ($full | test("## Goal")) then
        ($full | split("## Goal")[1] | split("\n##")[0]
@@ -76,8 +76,8 @@ render_session_list() {
 # A session is "noteworthy-bad" (renders ORANGE) when ANY deterministic quality
 # signal is set — NOT only when the LLM `flagged` bit fires. This decouples the
 # review's legibility from the flag pipeline: when flag confirmation collapsed to
-# ~0% (2026-06-05..22) the orange branch went dark and the whole review read as a
-# flat grey/green list (2026-06-22 review). The flag-independent signals are:
+# ~0% for weeks the orange branch went dark and the whole review read as a
+# flat grey/green list. The flag-independent signals are:
 #   - Outcome in {partial, abandoned, wrong_approach}
 #   - Narrative_Confidence == 'low'  (narrative contradicts the deterministic facts)
 # plus the original flagged+issue path. The colour model is unchanged — grey
@@ -112,13 +112,13 @@ render_improvement_signals() {
               | gsub("^\\s+|\\s+$"; "") | gsub("\\n+"; " "))
      else "" end) as $raw_signal |
     # Drop "None." / "N/A ..." placeholders — the narrative prompt allows an
-    # explicit no-signal answer (2026-06-12) so clean sessions stop generating
+    # explicit no-signal answer so clean sessions stop generating
     # forced advice; only real signals should reach the review.
     (if ($raw_signal | test("^(None|N/A)\\b"; "i")) then "" else $raw_signal end) as $signal |
     # A 0-turn/0-call session attempted nothing (e.g. open-then-/exit). Its
     # recorded outcome ("abandoned") and any low narrative confidence are the
     # cosmetic no-op shape, not real friction — never paint these orange
-    # (mirrors narrative-check rule 4; 2026-06-22 review).
+    # (mirrors narrative-check rule 4).
     (($turns == 0) and ($calls == 0)) as $noop |
     # noteworthy-bad set (flag-independent)
     (($outcome == "partial") or ($outcome == "abandoned") or ($outcome == "wrong_approach")) as $bad_outcome |
@@ -158,7 +158,7 @@ render_improvement_signals() {
     fi
 
     # Header (title): ORANGE(214) ⚠ when noteworthy-bad, else GREY(245). The
-    # baseline stays grey so a clean day isn't all-green (2026-06-18 reflection).
+    # baseline stays grey so a clean day isn't all-green.
     if [ "$bad" = "true" ]; then
       gum style --foreground 214 --bold "  ⚠ $proj$classification"
     else
@@ -178,7 +178,7 @@ render_improvement_signals() {
 
     # Recommendation lines (GREEN): the flag-analysis suggestion (flagged only),
     # then the narrative's Improvement Signal. Both render green so zero-flag days
-    # still show green advice against a grey header (2026-06-15/16 reflections).
+    # still show green advice against a grey header.
     if [ -n "$suggestion" ]; then
       gum style --foreground 82 "    → $suggestion"
     fi

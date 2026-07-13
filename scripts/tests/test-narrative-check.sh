@@ -4,7 +4,7 @@
 #
 # WHAT IT TESTS:  validate_narrative from lib/narrative-check.sh, focusing on
 #                 check #3 (cited-commit resolution). The key regression guarded
-#                 here is the 2026-06-25 cross-repo fix: a hash that is real in
+#                 here is the cross-repo fix: a hash that is real in
 #                 ~/.claude (where /improve applies its findings) must NOT be
 #                 flagged as confabulation just because it's absent from the
 #                 session's CWD repo. A genuinely fabricated hash must still flag.
@@ -56,7 +56,7 @@ CLAUDE_HASH="$(git_init_with_commit "$HOME/.claude")"   # real, but in ~/.claude
 SESSION_DIR="$TMP/session"
 SESSION_HASH="$(git_init_with_commit "$SESSION_DIR")"   # real, in the session CWD repo
 
-# Case 1 (the 2026-06-25 regression): a hash real only in ~/.claude, not handed
+# Case 1 (the cross-repo regression): a hash real only in ~/.claude, not handed
 # in as a known session hash, must resolve to high — not be called confabulation.
 assert_verdict "cross-repo ~/.claude hash -> high" "high" \
   "$(validate_narrative "Applied findings in commit ${CLAUDE_HASH} to the settings repo." \
@@ -85,18 +85,18 @@ assert_verdict "nothing-shipped contradiction -> low" "low" \
   "$(validate_narrative "Nothing shipped this session." \
        3 0 null 8 12 partial "" "$SESSION_DIR")"
 
-# Case 6 (2026-07-01): a pure-numeric customer/user ID is valid hex but is a
+# Case 6: a pure-numeric customer/user ID is valid hex but is a
 # decimal ID, not a commit — it must not be probed as a hash and flagged.
-# operations 2026-06-30 cited user ID 1274923 and drew a bogus
-# "cites commit 1274923 not found in repo" low.
+# A narrative once cited a 7-digit user ID and drew a bogus
+# "cites commit <id> not found in repo" low.
 assert_verdict "pure-numeric ID not treated as hash -> high" "high" \
   "$(validate_narrative "Set the display name for user ID 1274923." \
        3 1 null 10 20 success "abc1234" "$SESSION_DIR")"
 
-# Case 7 (2026-07-08): check #1 must scan only the Outcome section. A narrative
+# Case 7: check #1 must scan only the Outcome section. A narrative
 # whose Approach QUOTES another session's state ("files modified but no commits")
-# while its own Outcome cites a real commit must stay high — the 2026-07-07
-# /improve narrative drew a bogus "claims nothing shipped" low this way.
+# while its own Outcome cites a real commit must stay high — an
+# /improve narrative once drew a bogus "claims nothing shipped" low this way.
 QUOTED_NARR="## Goal
 Process flagged sessions.
 ## Approach
