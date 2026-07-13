@@ -78,8 +78,8 @@ Output: **Action** (workflow/tool/process change, new automation, skill combinat
 
 Audit skills in `~/.claude/skills/` against a quality rubric grounded in current Anthropic documentation.
 
-**Context budget (added 2026-05-11 after 2 weeks of recurring self-flags on context bloat):**
-- Audit at most **3 skills per run** (rotated). Loading 15+ SKILL.md files at once causes the bloat flagged on 2026-04-30 and 2026-05-07.
+**Context budget:**
+- Audit at most **3 skills per run** (rotated). Loading 15+ SKILL.md files at once bloats the context (a recurring self-flag before this cap existed).
 - Use a **local cache** for Anthropic skill guidance, refreshed at most weekly. Skip context7 MCP unless the cache is stale or missing.
 
 **Data gathering:**

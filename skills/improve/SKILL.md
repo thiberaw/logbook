@@ -47,7 +47,7 @@ is missing (fresh install, deleted), treat it as empty — note it, don't fail.
 - **State**: `$(logbook path state)/last-improve-date` — date of last run
 - **Article fetcher**: `logbook fetch-articles` refreshes the cache; the script lives in the tool repo at `scripts/lib/fetch-articles.sh` — read it only if the awareness lens finds article quality issues
 
-**Read discipline (added 2026-07-10 after the 07-09 \$22.44 flagged run):** read data files with the Read tool on their **real paths** — for large files (e.g. `open-concerns.md`), grep the section outline first, then Read with offset/limit. Never read content through Bash `cat` or a tool-result cache path ("Output too large, saved to <path>") — those reads do not satisfy the Edit precondition and waste a failed-Edit round-trip. Pre-read the files you will later edit (`open-concerns.md`, `watch-items.json`, `.audit-cursor`) during data gathering.
+**Read discipline:** read data files with the Read tool on their **real paths** — for large files (e.g. `open-concerns.md`), grep the section outline first, then Read with offset/limit. Never read content through Bash `cat` or a tool-result cache path ("Output too large, saved to <path>") — those reads do not satisfy the Edit precondition and waste a failed-Edit round-trip. Pre-read the files you will later edit (`open-concerns.md`, `watch-items.json`, `.audit-cursor`) during data gathering.
 
 ## Process
 
@@ -141,7 +141,7 @@ If the user asks a clarifying or explanatory question during the analysis (e.g. 
 
 ### 7. Present findings and get approval
 
-Open the findings message with a plain statement of what was found and what actions are proposed — keep interpretive framing in the body (a 2026-07-10 interpretive lead cost a clarification turn at the gate).
+Open the findings message with a plain statement of what was found and what actions are proposed — keep interpretive framing in the body (an interpretive lead has cost a clarification turn at the gate before).
 
 Present ALL findings to the user BEFORE making any changes. For each item, show:
 - The lens that produced it (`config`, `retrospective`, `awareness`, `wide-view`, `skill-audit`)

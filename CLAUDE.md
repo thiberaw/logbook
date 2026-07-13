@@ -29,6 +29,9 @@ project names, or transcripts into this repo.
 ## Privacy
 
 - Example data uses placeholder names (`my-app`, `acme-app`, `/home/you/…`).
+- Skill/doc prose states lessons, not incidents: no dates, dollar amounts, or
+  session details from real usage ("an interpretive lead has cost a turn
+  before", not "the 05-12 $19.80 run"). Applies to every /improve edit here.
 - Before any public push: `grep -riE 'thib|concord|horizon|backoffice' .`
   must return nothing (wired as a pre-push hook; keep it that way).
 - The eval corpus, user docs, and anything derived from real sessions belong
