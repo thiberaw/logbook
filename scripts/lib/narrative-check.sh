@@ -45,10 +45,12 @@ validate_narrative() {
   #    sessions it was reviewing and drew a bogus low despite citing its own
   #    real commit). Narratives without an Outcome header fall back
   #    to whole-text scanning.
-  local outcome
-  outcome=$(printf '%s' "$nl" | sed -n '/^## outcome/,/^## /p')
-  [ -z "$outcome" ] && outcome="$nl"
-  if printf '%s' "$outcome" | grep -qE 'nothing shipped|no code (was )?(committed|changed)|(0|zero|no) commits|no files (were )?(modified|changed)'; then
+  # NB: a local named `outcome` here would shadow the outcome-verdict arg that
+  # check #4 reads — that shadow once silently killed check #4.
+  local outcome_section
+  outcome_section=$(printf '%s' "$nl" | sed -n '/^## outcome/,/^## /p')
+  [ -z "$outcome_section" ] && outcome_section="$nl"
+  if printf '%s' "$outcome_section" | grep -qE 'nothing shipped|no code (was )?(committed|changed)|(0|zero|no) commits|no files (were )?(modified|changed)'; then
     if [ "${files:-0}" -gt 0 ] || { [ "$commits" != "-1" ] && [ "${commits:-0}" -gt 0 ]; }; then
       reasons+=("claims nothing shipped but files_modified=${files}, commits=${commits}")
     fi
@@ -66,12 +68,16 @@ validate_narrative() {
   #    cited two real prior repo commits, and was
   #    wrongly marked unverified because they weren't from this session.)
   #    Only runs when we were handed the session's hash list (else we can't judge).
-  #    Also probe ~/.claude — /improve (and any data-repo session)
-  #    routinely applies findings to the claude-settings repo, so cited hashes
-  #    can legitimately live there rather than in the session's CWD repo (a real
-  #    ~/.claude commit was once wrongly flagged as confabulation).
+  #    Also probe ~/.claude and the tool repo — /improve (and any data-repo
+  #    session) routinely applies findings to the claude-settings repo AND to
+  #    this tool repo, so cited hashes can legitimately live in either rather
+  #    than in the session's CWD repo (real commits in both were once wrongly
+  #    flagged as confabulation). The tool repo is self-located from this
+  #    script's own path, never hardcoded.
   if [ -n "$known_hashes" ]; then
-    local h probe_dirs=("$repo_dir" "$HOME/.claude")
+    local tool_root
+    tool_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+    local h probe_dirs=("$repo_dir" "$HOME/.claude" "$tool_root")
     # Pure-decimal tokens (customer/user IDs, counts, byte sizes) are valid hex
     # but are not commits — grep -v them out, or a 7-digit ID like a user ID
     # gets probed as a hash and flagged "not found" (a narrative once cited a
@@ -83,8 +89,8 @@ validate_narrative() {
         [ "${kh:0:7}" = "$short" ] && { found=1; break; }
       done
       # Not in this session — but if it resolves to a real commit in any repo a
-      # session may commit to (its CWD repo or ~/.claude), it's legitimate
-      # prior-work context, not a confabulation.
+      # session may commit to (its CWD repo, ~/.claude, or the tool repo), it's
+      # legitimate prior-work context, not a confabulation.
       for d in "${probe_dirs[@]}"; do
         [ "$found" -eq 0 ] || break
         git -C "$d" cat-file -e "${short}^{commit}" 2>/dev/null && found=1

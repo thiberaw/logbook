@@ -109,6 +109,22 @@ assert_verdict "quoted 'no commits' outside Outcome -> high" "high" \
   "$(validate_narrative "$QUOTED_NARR" \
        1 1 null 18 19 success "$SESSION_HASH" "$SESSION_DIR")"
 
+# Case 9 (the third-repo regression): a hash real only in the TOOL repo (where
+# /improve applies script fixes) must resolve to high. The probe self-locates
+# the tool root from the library's own path, so the real repo's HEAD is a
+# guaranteed-real tool-repo hash on any clone.
+TOOL_HASH="$(git -C "$SCRIPT_DIR/.." rev-parse --short HEAD)"
+assert_verdict "tool-repo hash -> high" "high" \
+  "$(validate_narrative "Fixed the reporter in commit ${TOOL_HASH} in the tool repo." \
+       2 1 null 14 21 success "deadbee" "$SESSION_DIR")"
+
+# Case 10 (check #4 shadow regression): a 0-turn/0-call session labelled
+# "abandoned" must flag low. A local variable named `outcome` in check #1 once
+# shadowed the outcome-verdict argument and silently killed this check.
+assert_verdict "0-turn abandoned contradiction -> low" "low" \
+  "$(validate_narrative "Session ended without interaction." \
+       0 -1 null 0 0 abandoned "" "$SESSION_DIR")"
+
 # Case 8: a genuine nothing-shipped claim INSIDE the Outcome section still
 # contradicts commits>0 and must flag low — the scoping must not blind check #1.
 OUTCOME_NARR="## Goal
