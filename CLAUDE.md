@@ -35,6 +35,8 @@ project names, or transcripts into this repo.
   run"). Synthetic test-fixture values and format examples are fine. Applies
   to every /improve edit here.
 - Before any public push: `grep -riE 'thib|concord|horizon|backoffice' .`
-  must return nothing (wired as a pre-push hook; keep it that way).
+  must return nothing (wired as a pre-push hook; keep it that way). Sole
+  content exemption: the repo's own public clone URL in the README — the
+  hook excludes that exact string, nothing broader.
 - The eval corpus, user docs, and anything derived from real sessions belong
   in the data dir, not here.

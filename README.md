@@ -21,7 +21,7 @@ The tool is three surfaces over one data directory you configure:
 ## Install
 
 ```bash
-git clone <this-repo> ~/src/logbook
+git clone https://github.com/thiberaw/logbook.git ~/src/logbook
 ~/src/logbook/install.sh
 ```
 
