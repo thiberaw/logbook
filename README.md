@@ -21,9 +21,12 @@ The tool is three surfaces over one data directory you configure:
 ## Install
 
 ```bash
-git clone https://github.com/thiberaw/logbook.git ~/src/logbook
-~/src/logbook/install.sh
+git clone https://github.com/thiberaw/logbook.git
+cd logbook && ./install.sh
 ```
+
+Clone it somewhere permanent — the installer symlinks into the clone, so if
+you move the directory later, re-run `install.sh` to refresh the links.
 
 `install.sh` verifies dependencies (required: `jq`, `sqlite3`, `python3`, `git`;
 recommended: `gum` for the TUI, `gh` for PR scanning), symlinks the `logbook`
