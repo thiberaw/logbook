@@ -34,9 +34,10 @@ project names, or transcripts into this repo.
   usage ("an interpretive lead has cost a turn before", not "the 05-12 $19.80
   run"). Synthetic test-fixture values and format examples are fine. Applies
   to every /improve edit here.
-- Before any public push: `grep -riE 'thib|concord|horizon|backoffice' .`
-  must return nothing (wired as a pre-push hook; keep it that way). Sole
-  content exemption: the repo's own public clone URL in the README — the
-  hook excludes that exact string, nothing broader.
+- Before any public push: grep the repo for every term in the private PII
+  denylist (`$(logbook path state)/pii-denylist.txt`, gitignored) — it must
+  return nothing. Sole content exemption: the repo's own public clone URL
+  in the README.
+  `grep -riFf <(grep -vE '^(#|$)' "$(logbook path state)/pii-denylist.txt" | cut -d'|' -f1) . --exclude-dir=.git \ | grep -vF 'github.com/thiberaw/logbook'`
 - The eval corpus, user docs, and anything derived from real sessions belong
   in the data dir, not here.
