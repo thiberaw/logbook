@@ -8,7 +8,9 @@ The tool is three surfaces over one data directory you configure:
 - **Session tracking** — `SessionStart`/`SessionEnd` hooks insert a row per
   session (project, duration, cost, turns, tool calls/errors, files modified),
   then a background worker adds an LLM-written narrative, deterministic
-  cross-checks, and a waste-detection flag.
+  cross-checks, and a waste-detection flag. Every session is recorded, run in
+  any directory — git repo or not; `LOGBOOK_PROJECTS_DIR` only groups and scans
+  repos, it never gates what gets tracked.
 - **Morning review** — an interactive `gum` TUI that walks each unreviewed
   day: sessions, PRs, improvement signals, your reflection note. Writes an
   immutable `reviewed/<date>.md` per day and commits it (if the data dir is a
@@ -60,7 +62,7 @@ Resolution order: `LOGBOOK_DATA_DIR` env var > `~/.config/logbook/config` >
 | Key | Meaning |
 |---|---|
 | `LOGBOOK_DATA_DIR` | where all output lives (may be a private git repo — then reviews auto-commit and push) |
-| `LOGBOOK_PROJECTS_DIR` | directory holding *only* your git repos; enables PR scanning (unset = skipped) |
+| `LOGBOOK_PROJECTS_DIR` | directory holding *only* your git repos; enables PR scanning and project-name grouping (unset = skipped; session tracking is unaffected) |
 | `LOGBOOK_GIT_USER` | git author to track (default: `git config user.name`) |
 | `LOGBOOK_FIXTURES_DIR` | private eval corpus location (default: `<data>/eval/fixtures`) |
 | `LOGBOOK_ARTICLE_SOURCES` | article sources for review suggestions: `all` (default) or a comma-separated whitelist — `install.sh` offers a picker; ids listed in `lib/fetch-articles.sh` |
