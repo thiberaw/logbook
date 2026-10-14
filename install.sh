@@ -62,7 +62,26 @@ run_check() {
       echo "  ok: data dir writable"
     else
       echo "  MISSING: data dir absent or not writable"; exit 1
+    fi
+    # morning-review commits/pushes/opens its reports from DATA_DIR; without a
+    # git repo + remote that whole flow silently no-ops (reports still written).
+    if git -C "$DATA_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      if git -C "$DATA_DIR" remote get-url origin >/dev/null 2>&1; then
+        echo "  ok: data dir is a git repo with an origin remote"
+      else
+        echo "  warn: data dir has no 'origin' remote — morning-review cannot push/open reports"
+      fi
+    else
+      echo "  warn: data dir is not a git repo — morning-review cannot commit/push/open reports"
     fi ) || ok=1
+  # Session hooks wired into Claude Code? Without them no sessions are tracked.
+  if [ -f "$HOME/.claude/settings.json" ] \
+     && grep -q "logbook session-start" "$HOME/.claude/settings.json" 2>/dev/null \
+     && grep -q "logbook session-end" "$HOME/.claude/settings.json" 2>/dev/null; then
+    echo "  ok: session hooks present in settings.json"
+  else
+    echo "  warn: session hooks not found in ~/.claude/settings.json — session tracking will not run"
+  fi
   echo "  deps: required present (${REQUIRED[*]})"
   return "$ok"
 }
@@ -104,6 +123,9 @@ if [ ! -f "$CFG_FILE" ]; then
     read -r data_dir
   fi
   data_dir="${data_dir:-$default_data}"
+  if [ ! -t 0 ] && [ -z "${LOGBOOK_DATA_DIR:-}" ]; then
+    echo "note: non-interactive install — defaulting data dir to $data_dir (set LOGBOOK_DATA_DIR to override)"
+  fi
 
   # Article sources for the morning-review suggestions. Interactive installs
   # get a picker over the built-in sources (all preselected); non-interactive
@@ -141,6 +163,26 @@ fi
 source "$TOOL_DIR/scripts/config.sh"
 mkdir -p "$DATA_DIR/reviewed" "$DATA_DIR/daily" "$DATA_DIR/docs" "$DATA_DIR/.state"
 
+# morning-review commits/pushes/opens its reports from DATA_DIR, so it must be a
+# git repo with a remote or that whole flow silently no-ops. Don't force it, but
+# don't leave it silent either.
+if ! git -C "$DATA_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [ -t 0 ]; then
+    printf 'DATA_DIR (%s) is not a git repo — morning-review needs one to commit/push/open reports.\nRun `git init` there now? [y/N] ' "$DATA_DIR"
+    read -r _gi_reply || _gi_reply=""
+    if [ "${_gi_reply:-}" = y ] || [ "${_gi_reply:-}" = Y ]; then
+      git -C "$DATA_DIR" init -q
+      echo "git-initialized $DATA_DIR — add a remote to enable push/open:"
+      echo "  git -C $DATA_DIR remote add origin <github-url>"
+    else
+      echo "left as-is — morning-review will write reports but not commit/push/open them"
+    fi
+  else
+    echo "WARNING: DATA_DIR ($DATA_DIR) is not a git repo — morning-review cannot commit/push/open reports."
+    echo "  git -C $DATA_DIR init && git -C $DATA_DIR remote add origin <github-url>"
+  fi
+fi
+
 if [ ! -f "$STATE_DIR/sessions.db" ]; then
   source "$TOOL_DIR/scripts/lib/sessions-db.sh"
   init_sessions_db >/dev/null
@@ -169,7 +211,7 @@ seed "$DATA_README" <<'EOF'
 # Logbook data
 
 Daily reviews, weekly summaries, and reflection docs written by the
-[logbook](https://github.com/) tool.
+[logbook](https://github.com/thiberaw/logbook) tool.
 
 ## Logs
 EOF
