@@ -83,6 +83,13 @@ Everything user-generated lives in the data dir, never in this repo:
 `eval/fixtures/` (the private flag-analysis corpus — verbatim transcripts of
 your real work; the tests skip cleanly when it is absent).
 
+## Integrations
+
+The session store is an open SQLite table, not a CLI-private format: any tool —
+an editor plugin, another agent, a script — can record a session by inserting one
+row, and it shows up in the reports alongside your CLI sessions. See
+[docs/integrations.md](docs/integrations.md).
+
 ## Development
 
 `scripts/README.md` maps how the scripts fit together; `docs/architecture.md`
