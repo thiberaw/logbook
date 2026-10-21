@@ -114,7 +114,8 @@ Only read config files relevant to patterns found in steps 1-3:
 
 Read `$(logbook path concerns)`. For each concern:
 - Check whether recent session data provides new evidence (positive or negative)
-- Append dated observations under the concern's `### Daily observations` section
+- DRAFT the dated observation to propose in step 7 — do NOT append it yet (the
+  read-only phase forbids writes before step 7; the actual append happens in step 8)
 - If enough evidence has accumulated to make a decision, flag it in the findings (step 6)
 
 This step feeds into the lenses — concerns with new evidence may surface as config, retrospective, or wide-view findings.
@@ -125,7 +126,7 @@ This step feeds into the lenses — concerns with new evidence may surface as co
 
 **Read the hook-health evidence too.** Run `logbook hook-report` — per-hook telemetry from `hook-fires.log` (fire counts, session/project clusters, flagged-session overlap, inert hooks, disarm tally). Evidence only: it emits no verdicts. Treat each `⚠ your call:` line as a judgment task; any hook prune/fix proposal it motivates belongs in the findings list (step 7), never applied inline.
 
-**Reconcile watch-items.json.** For any concern opened or closed in `open-concerns.md` since the last run, add or remove its entry in `$(logbook path watch)` (use `metric: null` if no metric fits yet). The watch-report tool only reports on registered items — an unregistered concern is silently uncovered.
+**Note watch-items.json reconciliation (apply in step 8).** For any concern opened or closed in `open-concerns.md` since the last run, the entry in `$(logbook path watch)` must be added or removed (use `metric: null` if no metric fits yet) — record what needs changing now, but make the edit in step 8, not here. The watch-report tool only reports on registered items — an unregistered concern is silently uncovered.
 
 ### 6. Apply 5 analysis lenses
 
@@ -163,6 +164,7 @@ Do NOT apply changes if ANY is true:
 
 Only after user validation:
 - Apply the approved file changes
+- Append the approved concern observations to `open-concerns.md` (drafted in step 5), and apply any watch-items.json reconciliation noted in step 5
 - **If an approved change is meant to move a registered watch-item's metric, record it as an intervention** so the loop can later prove (or disprove) it worked instead of assuming it did. Add an `intervention: { date, baseline, expected_direction }` to that item in `$(logbook path watch)` (the current metric value is the baseline; `date` = today). `watch-report.sh --report` then renders the honest before/after around that date on the next run. This is the antidote to taking credit a model release actually earned (real intervention history: three prompt tweaks moved a metric not at all, a model bump did — the recorded baseline is what made that visible).
 - **If any change touched the tool repo's `scripts/`, run its test suite BEFORE committing** — a broken script silently kills the session-tracking pipeline (seen in the wild: an applied edit added unescaped quotes to a worker prompt string, crashing every session-end for 3 days):
   ```bash
