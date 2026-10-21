@@ -218,6 +218,30 @@ EOF
 seed "$DATA_DIR/.gitignore" <<'EOF'
 .state/
 EOF
+# Private PII denylist — a template only; the real terms are yours to fill. It
+# lives in .state/ (gitignored above), so it is never committed anywhere. The
+# pre-public-push check in CLAUDE.md greps the tool repo against these terms.
+seed "$STATE_DIR/pii-denylist.txt" <<'EOF'
+# logbook PII denylist — PRIVATE. Lives in DATA_DIR/.state (gitignored); never
+# commit this to the public tool repo. It is the safety net that keeps your real
+# identifiers out of the public engine repo before a push.
+#
+# The pre-public-push check (see the tool repo's CLAUDE.md) greps the repo
+# against these terms and must return nothing:
+#   grep -riFf <(grep -vE '^(#|$)' this-file | cut -d'|' -f1) . --exclude-dir=.git \
+#     | grep -vF 'github.com/<your-handle>/logbook'
+#
+# Format: one term per line. Blank lines and #-comment lines are ignored. Only
+# the text before the first '|' is the search term; anything after '|' is a note
+# for humans. Terms match fixed-string, case-insensitive, anywhere on a line.
+#
+# Add the identifiers that must never appear in the public engine repo — your
+# name / handle / emails, plus any client / company / customer-org / project
+# codenames. One per line, term|note. Examples (delete these, add your own):
+#   jane-doe|github handle
+#   jane@example.com|work email
+#   acme-corp|client codename
+EOF
 
 # --- [hook block: printed, never auto-edited] -------------------------------------
 cat <<EOF

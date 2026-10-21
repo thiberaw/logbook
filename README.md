@@ -79,9 +79,26 @@ sqlite3 "$(logbook path db)" "SELECT date, name, cost FROM sessions WHERE projec
 Everything user-generated lives in the data dir, never in this repo:
 `daily/*.json` (per-day metadata), `reviewed/*.md` (immutable review output),
 `docs/` (open-concerns, watch-items), `<year>/<month>/` (weekly summaries),
-`.state/` (gitignored runtime: the SQLite DB, logs, caches), and
-`eval/fixtures/` (the private flag-analysis corpus — verbatim transcripts of
-your real work; the tests skip cleanly when it is absent).
+`.state/` (gitignored runtime: the SQLite DB, logs, caches, and the
+`pii-denylist.txt` described below), and `eval/fixtures/` (the private
+flag-analysis corpus — verbatim transcripts of your real work; the tests skip
+cleanly when it is absent).
+
+### Keeping the public repo clean
+
+`install.sh` seeds a private `pii-denylist.txt` template into `.state/`. Fill it
+with the real identifiers that must never appear in this public engine repo —
+your name, handle, emails, and any client / company / project codenames (format
+documented in the file). Before pushing a change to the public repo, grep it
+against that list and confirm it returns nothing:
+
+```bash
+DENY="$(logbook path state)/pii-denylist.txt"
+grep -riFf <(grep -vE '^(#|$)' "$DENY" | cut -d'|' -f1) . --exclude-dir=.git \
+  | grep -vF 'github.com/<your-handle>/logbook'
+```
+
+The file lives in the gitignored `.state/`, so it is never committed anywhere.
 
 ## Integrations
 
