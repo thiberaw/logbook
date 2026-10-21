@@ -87,8 +87,18 @@ your real work; the tests skip cleanly when it is absent).
 
 The session store is an open SQLite table, not a CLI-private format: any tool —
 an editor plugin, another agent, a script — can record a session by inserting one
-row, and it shows up in the reports alongside your CLI sessions. See
-[docs/integrations.md](docs/integrations.md).
+row, and it shows up in the reports alongside your CLI sessions.
+
+If the tool leaves a Claude Code-format transcript on disk, you get the full
+picture — cost, turns, tool calls, errors, files, narrative, flagging — with no
+manual SQL:
+
+```bash
+logbook record-transcript /path/to/session.jsonl --source my-tool
+```
+
+`--source` is an optional label that tags the row so external sessions stay
+recognisable in the reports. See [docs/integrations.md](docs/integrations.md).
 
 ## Development
 

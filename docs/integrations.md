@@ -49,9 +49,32 @@ narrative fields, …) has a default and can be omitted. The CLI fills those fro
 the Claude Code transcript; a tool without a transcript simply leaves them empty,
 which the reporters handle fine.
 
+## Full parity, when a transcript exists
+
+The minimal INSERT above records a session but leaves the metrics empty. If your
+tool drives Claude through something that writes a **Claude Code-format
+transcript** (a `.jsonl` with the usual `message`/`usage`/`tool_use` entries) —
+for example an ACP agent run from an editor — hand that file to logbook instead
+and get a row identical to a CLI session: cost, turns, tool calls, errors, files
+modified, the narrative, and flagging.
+
+```sh
+logbook record-transcript /path/to/session.jsonl [--source <tag>]
+```
+
+- It reads the session id and working directory from the transcript, inserts the
+  row (idempotent — re-running just refreshes the metrics), and runs the same
+  analysis the CLI's `SessionEnd` hook runs.
+- `--source <tag>` appends an origin label to the row name (e.g.
+  `[my-app] … [my-tool]`) so external rows stay recognisable in the reports.
+- It is tool-agnostic: it only reads the transcript you point it at. Where the
+  transcript lives, and when to record it, is the integrating tool's concern.
+
 ## Example in the wild
 
 A Neovim + CodeCompanion setup can record each chat on close by hooking the
-plugin's `CodeCompanionChatClosed` (and a `VimLeavePre` flush as a backstop) and
-running the `INSERT` above — recording editor AI sessions into the same database
-as the CLI, with no change to logbook itself.
+plugin's `CodeCompanionChatClosed` (and a `VimLeavePre` flush as a backstop).
+If the editor's agent leaves a transcript, the close hook calls
+`logbook record-transcript <transcript> --source <tool>` for full parity;
+otherwise it runs the minimal `INSERT` above — either way recording editor AI
+sessions into the same database as the CLI, with no change to logbook itself.

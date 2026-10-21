@@ -21,6 +21,7 @@ usage: logbook <command> [args]
   status            regenerate + print today's report
   weekly-summary    write the weekly summary into the data dir
   backfill          re-run analysis on sessions with missing metrics
+  record-transcript record a session from another tool's transcript (--source <tag>)
   watch-report      evidence report for open-concerns watch items (--report: plain)
   hook-report       per-hook telemetry health report
   fetch-articles    refresh the suggested-articles cache
@@ -42,6 +43,7 @@ case "$cmd" in
   status)          exec bash "$SCRIPTS/lib/daily-report.sh" "$@" ;;
   weekly-summary)  exec bash "$SCRIPTS/weekly-summary.sh" "$@" ;;
   backfill)        exec bash "$SCRIPTS/backfill-sessions.sh" "$@" ;;
+  record-transcript) exec bash "$SCRIPTS/record-transcript.sh" "$@" ;;
   watch-report)    exec bash "$SCRIPTS/watch-report.sh" "$@" ;;
   hook-report)     exec bash "$SCRIPTS/hook-report.sh" "$@" ;;
   fetch-articles)  exec bash "$SCRIPTS/lib/fetch-articles.sh" "$@" ;;

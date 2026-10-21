@@ -25,6 +25,7 @@ how they connect. For the data-flow narrative (what happens at each step), see
 | `morning-review.sh` | `logbook morning-review` (your launcher — shell, tmuxinator, …) | The interactive "good morning" review TUI. Walks unreviewed days, takes your approval + reflection, generates the report, commits & pushes. |
 | `weekly-summary.sh` | `logbook weekly-summary [mon fri]` (manual) | Standalone weekly report; no args = current week. Writes into `$WEEKLY_ROOT`, indexes the data README. |
 | `backfill-sessions.sh` | `logbook backfill` | Re-runs the worker on sessions that ended up with 0 turns (e.g. after a crash). |
+| `record-transcript.sh` | `logbook record-transcript <file> [--source <tag>]` | Record a session from another tool's Claude Code-format transcript: inserts the row and runs the worker against the given file for full-parity metrics. Tool-agnostic — see `docs/integrations.md`. |
 | `watch-report.sh` | morning-review.sh (TUI) + /improve (`--report`) | Read-only evidence reporter for open-concerns watch items; computes metrics over windows. Default = colour-coded TUI sorted attention-first; `--report` = plain text + spot-check rows for /improve. |
 | `hook-report.sh` | `logbook hook-report` (/improve) | Read-only per-hook telemetry health report from `~/.claude/logs/hook-fires.log`: fire counts, clusters, flagged-session overlap, inert hooks. Evidence only; exits 0 with "no telemetry yet" when the log is absent. |
 | `freeze-fixture.sh` | `logbook freeze-fixture` | Turn a recorded session into a labeled eval-corpus fixture in `$FIXTURES_DIR` (the private data dir, never the tool tree). |
@@ -51,6 +52,8 @@ morning-review.sh ──sources──> config.sh, lib/logging.sh, lib/git-activi
       └─runs──> watch-report.sh              (watch-item evidence screen)
 
 backfill-sessions.sh ──runs──> session-end-worker.sh
+record-transcript.sh ──sources──> config.sh, lib/logging.sh, lib/sessions-db.sh
+      └─runs──> session-end-worker.sh
 weekly-summary.sh ──sources──> config.sh, lib/i18n.sh, lib/sessions-db.sh, lib/session-utils.sh
 watch-report.sh ──sources──> config.sh, lib/sessions-db.sh, lib/watch-metrics.sh
 hook-report.sh ──sources──> config.sh
