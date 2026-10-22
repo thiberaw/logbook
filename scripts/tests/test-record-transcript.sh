@@ -139,6 +139,27 @@ else
   echo "  PASS: missing file exits non-zero"
 fi
 
+# --- 4) duration is the transcript span, NOT wall-clock since start ----------
+# Regression: the worker once used `now` as the session END, so running it after
+# the fact (a backfill, or any delayed ingest) measured the gap SINCE the session
+# instead of the session (a day-old row read 1807m instead of its real ~2h). The
+# END must come from the transcript's LAST timestamp. Here the fixture is dated in
+# the past and a stale started_at is seeded: with the bug duration is thousands of
+# minutes (now − start); fixed it is start(09:58) → last-ts(10:03) = 5.
+echo "== duration from transcript span, not now =="
+SID2="testsess-0000-4000-8000-000000000002"
+FIX2="$TMP/$SID2.jsonl"
+cat > "$FIX2" <<JSONL
+{"type":"user","userType":"external","uuid":"v1","sessionId":"$SID2","cwd":"$PROJ","gitBranch":"main","timestamp":"2026-10-20T10:00:00.000Z","message":{"role":"user","content":"Please refactor the parser module"}}
+{"type":"assistant","requestId":"r1","sessionId":"$SID2","cwd":"$PROJ","timestamp":"2026-10-20T10:01:00.000Z","message":{"id":"n1","model":"claude-opus-4-8","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"content":[{"type":"text","text":"Working on it."}]}}
+{"type":"assistant","requestId":"r2","sessionId":"$SID2","cwd":"$PROJ","timestamp":"2026-10-20T10:03:00.000Z","message":{"id":"n2","model":"claude-opus-4-8","usage":{"input_tokens":200,"output_tokens":100,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"content":[{"type":"text","text":"Done."}]}}
+JSONL
+# Seed a stale SessionStart (same past day, two minutes before first activity).
+echo "{\"$SID2\":{\"started_at\":\"2026-10-20T09:58:00.000Z\"}}" > "$LOGBOOK_DATA_DIR/.state/session-starts.json"
+bash "$SCRIPT_DIR/record-transcript.sh" "$FIX2" >/dev/null
+DUR2=$(sqlite3 "$DB" "SELECT duration FROM sessions WHERE session_id='$SID2';")
+assert_eq "duration = seeded start → transcript end (5), not now-based" "5" "$DUR2"
+
 echo ""
 if [ "$FAILS" -eq 0 ]; then
   echo "test-record-transcript: ALL PASS"

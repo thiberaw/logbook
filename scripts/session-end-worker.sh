@@ -81,20 +81,41 @@ log_info "started session=$SESSION_ID"
 
 # [duration] ------------------------------------------------------------------
 # --- Duration calculation ---
+# The session END is the transcript's LAST activity timestamp when a transcript
+# is available — NOT wall-clock `now`. The worker may run long after the session
+# ended (a `record-transcript` ingest, or a backfill of an older day), and `now`
+# then measures the gap SINCE the session, not the session itself: re-running a
+# day-old session's worker once read ~30h (1807m) instead of its real ~2h. `now`
+# is only the fallback for the no-transcript minimal path. START is the recorded
+# SessionStart (STATE_FILE) when present, else the transcript's first timestamp.
 STARTED_AT=""
 if [ -f "$STATE_FILE" ]; then
   # `--arg sid X` injects the id as a jq variable; `.[$sid].started_at` reads
   # that session's stored start time. `// empty` → nothing if absent.
   STARTED_AT=$(jq -r --arg sid "$SESSION_ID" '.[$sid].started_at // empty' "$STATE_FILE")
 fi
-# If we never recorded a start, assume "now" (duration will come out as 0).
+
+# Transcript span: min/max of the entry timestamps in one pass. ISO-8601 sorts
+# lexically, so min/max ARE the first/last activity regardless of line order.
+# Empty "first|last" when there is no transcript (or none carry a timestamp).
+TS_FIRST=""
+TS_LAST=""
+if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
+  TS_SPAN=$(jq -rs '[.[].timestamp // empty] | "\(min // "")|\(max // "")"' "$TRANSCRIPT_PATH" 2>/dev/null || echo "|")
+  TS_FIRST=${TS_SPAN%%|*}
+  TS_LAST=${TS_SPAN##*|}
+fi
+
+# START = recorded start, else transcript first, else now.
+[ -z "$STARTED_AT" ] && STARTED_AT="$TS_FIRST"
 [ -z "$STARTED_AT" ] && STARTED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+# END = transcript last, else now.
+ENDED_AT="$TS_LAST"
+[ -z "$ENDED_AT" ] && ENDED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# End time = right now, in UTC ISO-8601 (e.g. 2026-06-04T12:34:56Z).
-ENDED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-# Convert both timestamps to Unix epoch seconds. `date -d STR +%s` parses STR;
-# `2>/dev/null || echo 0` swallows parse errors and falls back to 0.
+# Convert both timestamps to Unix epoch seconds. `date -d STR +%s` parses STR
+# (GNU date handles the fractional-seconds + Z form directly); `2>/dev/null ||
+# echo 0` swallows parse errors and falls back to 0.
 START_EPOCH=$(date -d "$STARTED_AT" +%s 2>/dev/null || echo 0)
 END_EPOCH=$(date -d "$ENDED_AT" +%s 2>/dev/null || echo 0)
 DURATION_MINUTES=$(( (END_EPOCH - START_EPOCH) / 60 ))   # $(( )) = integer math
