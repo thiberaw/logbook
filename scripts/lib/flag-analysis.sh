@@ -28,8 +28,11 @@
 
 # The model the flag analysis runs on — shared so the regression test exercises
 # the same model the worker uses. Changing this is a measurement change: run the
-# golden test (RUN_LLM_TESTS=1) before shipping.
-FLAG_ANALYSIS_MODEL="claude-sonnet-4-6"
+# golden test (RUN_LLM_TESTS=1) before shipping. Bumped to the current Sonnet
+# generation to lift the confirmed-flag rate (see the calibration note above:
+# the model is the lever once prompt tweaks stop moving the rate) — model string
+# only, prompt left untouched so the variable stays isolated.
+FLAG_ANALYSIS_MODEL="claude-sonnet-5-5"
 
 # build_flag_prompt — print the full prompt on stdout.
 # args: 1=condensed_transcript 2=flag_reasons 3=project 4=branch

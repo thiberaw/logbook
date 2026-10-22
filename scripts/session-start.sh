@@ -156,6 +156,20 @@ jq -n \
   git_branch: $branch
 }' > "$ACTIVE_FILE"
 
+# [unprocessed-check] ---------------------------------------------------------
+# A crashed session-end worker leaves a row with metrics but no narrative
+# (description), invisible until the next morning-review. Surface it HERE, in
+# every session, as one loud line — but only when there is something to report,
+# so a healthy machine adds zero context. status='done' excludes live/in-progress
+# sessions (stale ones were just marked done above); `logbook backfill` re-runs
+# the worker on them. Failure of the probe must never break the hook.
+UNPROCESSED_NOTE=""
+UNPROCESSED_COUNT=$(sqlite3 "$DB_PATH" "SELECT count(*) FROM sessions WHERE (description IS NULL OR description='') AND status='done' AND date >= date('now','-7 days');" 2>/dev/null || echo 0)
+[[ "$UNPROCESSED_COUNT" =~ ^[0-9]+$ ]] || UNPROCESSED_COUNT=0
+if [ "$UNPROCESSED_COUNT" -gt 0 ]; then
+  UNPROCESSED_NOTE="⚠ ${UNPROCESSED_COUNT} past session(s) have unprocessed metrics — run \`logbook backfill\`."
+fi
+
 # [emit-reminder] -------------------------------------------------------------
 # Print the tracking instructions on stdout. Claude Code feeds a SessionStart
 # hook's stdout back to Claude as a system reminder, so this here-doc is how the
@@ -175,5 +189,7 @@ All session metadata is auto-populated at session end. ONE live update matters:
 when a skill is invoked, run silently (no mention to the user, no permission ask):
   sqlite3 ${DB_PATH} "UPDATE sessions SET skill = '<skill_name>' WHERE session_id = '${SESSION_ID}'"
 Optionally update name the same way once the goal is clear (escape ' by doubling).
-</session-tracking>
 INSTRUCTIONS_EOF
+# Loud, conditional: only printed when the probe above found crashed workers.
+[ -n "$UNPROCESSED_NOTE" ] && printf '%s\n' "$UNPROCESSED_NOTE"
+echo "</session-tracking>"

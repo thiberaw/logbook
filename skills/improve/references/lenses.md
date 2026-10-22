@@ -69,10 +69,18 @@ Look for broader workflow patterns beyond Claude Code config:
 - Tools/MCP servers available but unused for observed tasks
 - Task types without skills
 - Process patterns (always doing X then Y → automate the sequence)
+- **Config growth** — report the net rule/line change in `~/.claude/CLAUDE.md`
+  since the last run (`git -C ~/.claude diff --stat <last-improve commit>..HEAD -- CLAUDE.md`,
+  or a line-count delta if the repo state is unavailable). Treat every added
+  rule as a standing context cost paid in every session of every project. If
+  rules grew while the problems they target persist, that is the signal to
+  **consolidate or convert to a structural fix (hook/skill guard), not to add
+  another rule** — the same anti-pattern the config lens guards against, made
+  measurable here. A net reduction is a healthy outcome worth naming.
 
 Must cite specific session evidence (issue numbers). Not "consider using X" but concrete proposals.
 
-Output: **Action** (workflow/tool/process change, new automation, skill combination).
+Output: **Action** (workflow/tool/process change, new automation, skill combination, rule consolidation).
 
 ## Skill-audit lens
 

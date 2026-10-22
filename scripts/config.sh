@@ -75,6 +75,19 @@ FIXTURES_DIR="${LOGBOOK_FIXTURES_DIR:-$DATA_DIR/eval/fixtures}"
 # section of lib/fetch-articles.sh for the id list.
 ARTICLE_SOURCES="${LOGBOOK_ARTICLE_SOURCES:-all}"
 
+# --- flag-detection thresholds -------------------------------------------------
+# The hand-tuned knobs the session-end worker uses to mark a session for review
+# (lib/session-end-worker.sh, [flag detection]). Centralised here so they are
+# visible, env-overridable, and testable in one place instead of buried as magic
+# numbers in the worker. Defaults are unchanged — this is not a recalibration;
+# tuning values is an evidence-driven task for /improve + watch-items.
+FLAG_ERROR_COUNT_MIN="${FLAG_ERROR_COUNT_MIN:-3}"      # min tool errors to consider high-error-rate
+FLAG_ERROR_RATE="${FLAG_ERROR_RATE:-0.30}"            # error/tool-call ratio above which to flag
+FLAG_SPIN_TURNS_MIN="${FLAG_SPIN_TURNS_MIN:-5}"       # "spinning wheels": turns with 0 files, 0 commits
+FLAG_THRASH_TURNS_MIN="${FLAG_THRASH_TURNS_MIN:-12}"  # "thrashing": high turns vs low output
+FLAG_THRASH_FILES_MAX="${FLAG_THRASH_FILES_MAX:-1}"   # thrashing only when files_modified <= this
+FLAG_HIGH_COST_USD="${FLAG_HIGH_COST_USD:-15}"        # flag any session at or above this cost
+
 # Fallback repos for PR scanning (owner/repo format), used when PROJECTS_DIR
 # is unset or holds no git repos. Lives in the gitignored state dir.
 FALLBACK_GITHUB_REPOS_FILE="${FALLBACK_GITHUB_REPOS_FILE:-$STATE_DIR/fallback-repos}"

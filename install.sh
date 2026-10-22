@@ -73,6 +73,19 @@ run_check() {
       fi
     else
       echo "  warn: data dir is not a git repo — morning-review cannot commit/push/open reports"
+    fi
+    # Crashed session-end workers leave rows with metrics but no narrative —
+    # invisible except here and in the morning review. Report the count so a
+    # stalled pipeline is loud on demand, not only at the next review.
+    _db="$STATE_DIR/sessions.db"
+    if [ -f "$_db" ]; then
+      _unproc=$(sqlite3 "$_db" "SELECT count(*) FROM sessions WHERE (description IS NULL OR description='') AND status='done' AND date >= date('now','-7 days');" 2>/dev/null || echo 0)
+      [[ "$_unproc" =~ ^[0-9]+$ ]] || _unproc=0
+      if [ "$_unproc" -gt 0 ]; then
+        echo "  warn: $_unproc recent session(s) have unprocessed metrics — run 'logbook backfill'"
+      else
+        echo "  ok: no unprocessed sessions"
+      fi
     fi ) || ok=1
   # Session hooks wired into Claude Code? Without them no sessions are tracked.
   if [ -f "$HOME/.claude/settings.json" ] \

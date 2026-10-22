@@ -354,13 +354,14 @@ FLAGGED=false
 FLAG_REASONS=""
 
 if [ "$METRICS" != "{}" ]; then
-  # High error rate: >30% of tool calls errored, minimum 3 errors
-  if [ "$TOOL_ERRORS_COUNT" -ge 3 ] && [ "$TOTAL_TOOL_CALLS" -gt 0 ]; then
+  # High error rate: error/call ratio over FLAG_ERROR_RATE, at least
+  # FLAG_ERROR_COUNT_MIN errors (thresholds in config.sh).
+  if [ "$TOOL_ERRORS_COUNT" -ge "$FLAG_ERROR_COUNT_MIN" ] && [ "$TOTAL_TOOL_CALLS" -gt 0 ]; then
     # awk does the float division bash can't; LC_ALL=C forces a "." decimal
     # point regardless of locale. printf "%.2f" rounds to 2 decimals.
     ERROR_RATE=$(LC_ALL=C awk "BEGIN {printf \"%.2f\", $TOOL_ERRORS_COUNT / $TOTAL_TOOL_CALLS}")
-    # awk again to compare floats: prints "true" when the rate exceeds 0.30.
-    IS_HIGH=$(LC_ALL=C awk "BEGIN {print ($ERROR_RATE > 0.3) ? \"true\" : \"false\"}")
+    # awk again to compare floats: prints "true" when the rate exceeds the threshold.
+    IS_HIGH=$(LC_ALL=C awk "BEGIN {print ($ERROR_RATE > $FLAG_ERROR_RATE) ? \"true\" : \"false\"}")
     if [ "$IS_HIGH" = "true" ]; then
       FLAGGED=true
       FLAG_REASONS="high error rate (${TOOL_ERRORS_COUNT} errors / ${TOTAL_TOOL_CALLS} tool calls)"
@@ -373,7 +374,7 @@ if [ "$METRICS" != "{}" ]; then
   # read-only skills, which legitimately produce no file changes.
   if [[ "$EFFECTIVE_SKILL" =~ ^(review-pr|analyze-ticket|explain-changes|investigate-ci|investigate-ticket)$ ]]; then
     : # read-only skill — no output expected  (`:` is bash's no-op)
-  elif [ "$TOTAL_TURNS" -ge 5 ] && [ "$FILES_MODIFIED_COUNT" -eq 0 ] && [ "$COMMIT_COUNT" -eq 0 ]; then
+  elif [ "$TOTAL_TURNS" -ge "$FLAG_SPIN_TURNS_MIN" ] && [ "$FILES_MODIFIED_COUNT" -eq 0 ] && [ "$COMMIT_COUNT" -eq 0 ]; then
     FLAGGED=true
     # `${VAR:+$VAR; }` = if VAR is non-empty, expand to "VAR; ", else "". This
     # appends each reason with a "; " separator only when reasons already exist.
@@ -394,15 +395,16 @@ if [ "$METRICS" != "{}" ]; then
   # false-positive source for /review-pr sessions.
   if [[ "$EFFECTIVE_SKILL" =~ ^(review-pr|analyze-ticket|explain-changes|investigate-ci|investigate-ticket)$ ]]; then
     : # read-only skill — high turn / low file count is expected
-  elif [ "$TOTAL_TURNS" -ge 12 ] && [ "$FILES_MODIFIED_COUNT" -le 1 ]; then
+  elif [ "$TOTAL_TURNS" -ge "$FLAG_THRASH_TURNS_MIN" ] && [ "$FILES_MODIFIED_COUNT" -le "$FLAG_THRASH_FILES_MAX" ]; then
     FLAGGED=true
     FLAG_REASONS="${FLAG_REASONS:+$FLAG_REASONS; }high effort, low output (${TOTAL_TURNS} turns, ${FILES_MODIFIED_COUNT} files)"
   fi
 
-  # High cost: sessions over $15 are worth reviewing regardless
-  # Convert dollars to integer cents (awk) so bash's integer `-ge` can compare.
-  COST_INT=$(LC_ALL=C awk "BEGIN {printf \"%d\", $COST_USD * 100}")
-  if [ "$COST_INT" -ge 1500 ]; then   # 1500 cents = $15.00
+  # High cost: sessions at or above FLAG_HIGH_COST_USD are worth reviewing
+  # regardless (threshold in config.sh). awk does the float compare bash can't;
+  # LC_ALL=C forces a "." decimal point regardless of locale.
+  COST_IS_HIGH=$(LC_ALL=C awk "BEGIN {print ($COST_USD >= $FLAG_HIGH_COST_USD) ? 1 : 0}")
+  if [ "$COST_IS_HIGH" = "1" ]; then
     FLAGGED=true
     FLAG_REASONS="${FLAG_REASONS:+$FLAG_REASONS; }high cost (\$${COST_USD})"
   fi
@@ -474,22 +476,14 @@ fi
 
 # [narrative] -----------------------------------------------------------------
 # --- LLM narrative (runs for ALL sessions with a transcript) ---
-# Model is parameterized: the everyday narrative — the
-# signal the user actually reads each morning — was on the cheapest model while
-# the better model (sonnet) was reserved for the near-always-empty flag channel.
-# Override with NARRATIVE_MODEL to A/B a stronger model on substantive sessions.
-# Substantive sessions earn the stronger model; trivial ones stay cheap. The
-# sonnet demo pinned root causes from the trace that haiku missed,
-# but it's a per-session cost — so gate it: >=20 turns OR >=$5 estimated cost.
-# An explicit NARRATIVE_MODEL in the environment overrides the gate (for A/B).
-if [ -z "${NARRATIVE_MODEL:-}" ]; then
-  COST_GE5=$(LC_ALL=C awk "BEGIN {print ($COST_USD >= 5) ? 1 : 0}")
-  if [ "${TOTAL_TURNS:-0}" -ge 20 ] || [ "$COST_GE5" = "1" ]; then
-    NARRATIVE_MODEL="claude-sonnet-4-6"
-  else
-    NARRATIVE_MODEL="claude-haiku-4-5-20251001"
-  fi
-fi
+# The narrative is the one LLM feature the pipeline keeps — the signal the user
+# reads each morning — so every session gets it on the current Sonnet, not a
+# cheaper model on a turn/cost gate. A stronger model confabulates less, so the
+# deterministic narrative cross-check (narrative-check.sh) marks fewer sessions
+# `⚠ unverified`: the LLM layer leans harder on the trustworthy half. The
+# measured per-session cost delta is small (the harness-prompt cache-creation
+# tokens dominate either way). Override with NARRATIVE_MODEL to A/B.
+NARRATIVE_MODEL="${NARRATIVE_MODEL:-claude-sonnet-5-5}"
 NARRATIVE=""
 TASK_TYPE=""
 OUTCOME=""
