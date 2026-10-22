@@ -45,18 +45,23 @@ scrub_pii() {
   | {
     # Layer 2 — denylist, if present.
     if [ -f "$denylist" ]; then
-      local args=() term repl escaped
+      local args=() term repl escaped repl_escaped
       while IFS='|' read -r term repl; do
         [ -z "$term" ] && continue
         case "$term" in \#*) continue ;; esac
         # Escape sed-special characters in the term (it is plain text).
         escaped=$(printf '%s' "$term" | sed 's/[.[\*^$\/&]/\\&/g')
+        # The replacement goes on the RHS of s///, so escape the chars special
+        # THERE: the `/` delimiter, `&` (whole-match), and `\`. A `/` in a note
+        # after the `|` (e.g. "foo|bar/baz") otherwise closes the s command early
+        # and aborts the whole scrub — which once took the morning review down.
+        repl_escaped=$(printf '%s' "${repl:-<customer-org>}" | sed 's/[\/&\]/\\&/g')
         # Word-boundary guard for single-word terms only — multiword terms
         # and terms with punctuation are unambiguous enough as-is.
         if printf '%s' "$term" | grep -qE '^[A-Za-z0-9]+$'; then
           escaped="\b${escaped}\b"
         fi
-        args+=(-e "s/${escaped}/${repl:-<customer-org>}/Ig")
+        args+=(-e "s/${escaped}/${repl_escaped}/Ig")
       done < "$denylist"
       if [ ${#args[@]} -gt 0 ]; then
         sed -E "${args[@]}"

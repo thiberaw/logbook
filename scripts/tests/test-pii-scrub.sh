@@ -18,6 +18,7 @@ cat > "$STATE_DIR/pii-denylist.txt" << 'EOF'
 Acme Corp|<customer-org>
 Jane Doe|<customer-name>
 Globex|<customer-org>
+Initech|<customer/org>
 EOF
 
 source "$SCRIPT_DIR/lib/pii-scrub.sh"
@@ -72,6 +73,14 @@ check "single-word term respects word boundaries" \
 check "ticket keys and repo names untouched" \
   "SUP-123 fixed in acme-app" \
   "SUP-123 fixed in acme-app"
+
+# Regression: a replacement containing a sed-special char (/, &, \) must not
+# break the s/// expression — it once aborted scrub_pii with
+# "sed: -e expression #1 ... unknown option to `s'", which cascaded up and
+# aborted the whole morning review before its commit/push step.
+check "replacement with a slash does not break sed" \
+  "ticket from Initech about billing" \
+  "ticket from <customer/org> about billing"
 
 # JSON safety: scrubbing a JSON document must keep it parseable.
 JSON_IN='[{"title":"SUP-452 Delete blocking draft for Acme Corp","url":"https://github.com/x/y/pull/1"}]'

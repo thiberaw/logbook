@@ -34,7 +34,10 @@ init_sessions_db() {
   mkdir -p "$STATE_DIR"
   # `<<'SQL' ... SQL` is a here-doc: everything up to the closing SQL is fed to
   # sqlite3 as input. Quoting the opening tag ('SQL') means no $-expansion inside.
-  sqlite3 "$DB_PATH" <<'SQL'
+  # `>/dev/null` drops the one row `PRAGMA journal_mode=WAL` prints ("wal") so it
+  # never leaks to the terminal of callers (morning-review, daily-report); errors
+  # still go to stderr. CREATE TABLE emits no stdout, so nothing useful is lost.
+  sqlite3 "$DB_PATH" >/dev/null <<'SQL'
 PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
