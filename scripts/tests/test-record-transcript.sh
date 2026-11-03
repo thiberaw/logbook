@@ -160,6 +160,27 @@ bash "$SCRIPT_DIR/record-transcript.sh" "$FIX2" >/dev/null
 DUR2=$(sqlite3 "$DB" "SELECT duration FROM sessions WHERE session_id='$SID2';")
 assert_eq "duration = seeded start → transcript end (5), not now-based" "5" "$DUR2"
 
+# --- 5) notebook-only sessions: NotebookEdit counts + CodeCompanion preamble --
+# Regression: notebook work goes through NotebookEdit (keyed on notebook_path,
+# not file_path) — uncounted, every notebook session reported 0 files and
+# tripped the "no output" flag. And CodeCompanion sends the pasted CLAUDE.md as
+# the FIRST block of the opening message, so the name collapsed to "Sharing
+# `/home/.../CLAUDE.md`" across every session. The human's real prompt is the
+# LAST non-preamble block.
+echo "== NotebookEdit counts + CodeCompanion preamble skipped =="
+SID3="testsess-0000-4000-8000-000000000003"
+FIX3="$TMP/$SID3.jsonl"
+cat > "$FIX3" <<JSONL
+{"type":"user","userType":"external","uuid":"w1","sessionId":"$SID3","cwd":"$PROJ","gitBranch":"main","timestamp":"2026-10-20T10:00:00.000Z","message":{"role":"user","content":[{"type":"text","text":"Sharing \`/home/you/.claude/CLAUDE.md\`:\n# Global Rules\nlots of boilerplate"},{"type":"text","text":"Sharing the following file as context: /home/you/nb.ipynb"},{"type":"text","text":"Validate the python cells and add explaining comments"}]}}
+{"type":"assistant","requestId":"q1","sessionId":"$SID3","cwd":"$PROJ","timestamp":"2026-10-20T10:01:00.000Z","message":{"id":"p1","model":"claude-opus-4-8","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"content":[{"type":"text","text":"Adding comments now."},{"type":"tool_use","name":"NotebookEdit","input":{"notebook_path":"/home/you/nb.ipynb","cell_id":"abc"}}]}}
+{"type":"assistant","requestId":"q2","sessionId":"$SID3","cwd":"$PROJ","timestamp":"2026-10-20T10:02:00.000Z","message":{"id":"p2","model":"claude-opus-4-8","usage":{"input_tokens":200,"output_tokens":100,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"content":[{"type":"text","text":"Done."}]}}
+JSONL
+bash "$SCRIPT_DIR/record-transcript.sh" "$FIX3" >/dev/null
+assert_eq       "NotebookEdit counts as 1 file"  "1" "$(sqlite3 "$DB" "SELECT files_modified FROM sessions WHERE session_id='$SID3';")"
+NAME3=$(sqlite3 "$DB" "SELECT name FROM sessions WHERE session_id='$SID3';")
+assert_contains "name uses real prompt, not CLAUDE.md paste" "Validate the python cells" "$NAME3"
+assert_absent   "name does not collapse to Sharing-preamble"  "Sharing" "$NAME3"
+
 echo ""
 if [ "$FAILS" -eq 0 ]; then
   echo "test-record-transcript: ALL PASS"

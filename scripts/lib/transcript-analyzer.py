@@ -82,6 +82,40 @@ def is_substantive_text(text: str) -> bool:
     return len(stripped) > 0
 
 
+# CodeCompanion (and similar wrappers) prepend shared-context blocks — a pasted
+# CLAUDE.md, file attachments, "Sharing `...`" / "Sharing the following file"
+# headers, a "Shell cwd was reset" note — ahead of the human's actual prompt,
+# which arrives as the LAST text block of the message. Naming a session after
+# the first block collapses every such session to the CLAUDE.md paste.
+CONTEXT_PREAMBLE_RE = re.compile(
+    r"^(?:Sharing\s+(?:`|the following file)|<attachment\b|Shell cwd was reset\b)",
+    re.IGNORECASE,
+)
+
+
+def human_prompt_from_content(content) -> str:
+    """Return the human's typed prompt from a message content field.
+
+    For a multi-block message, drop shared-context/attachment preamble blocks
+    and return the last remaining text block (wrappers append the real prompt
+    last). For a plain string, return it unchanged.
+    """
+    if isinstance(content, list):
+        blocks = []
+        for block in content:
+            if isinstance(block, str):
+                blocks.append(block)
+            elif isinstance(block, dict) and block.get("type") == "text":
+                blocks.append(block.get("text", ""))
+        candidates = [
+            b for b in blocks
+            if b.strip() and not CONTEXT_PREAMBLE_RE.match(b.strip())
+        ]
+        if candidates:
+            return candidates[-1]
+    return extract_text_from_content(content)
+
+
 # ---------- Metrics extraction ----------
 
 
@@ -199,9 +233,16 @@ def extract_metrics(path: str) -> dict:
                     tool_calls[tool_name] += 1
                     tool_input = block.get("input", {})
 
-                    # Track files modified by Edit/Write/MultiEdit
+                    # Track files modified by Edit/Write/MultiEdit/NotebookEdit.
+                    # NotebookEdit (every .ipynb edit) keys its path on
+                    # notebook_path, not file_path — without it, notebook-only
+                    # sessions report 0 files and trip the "no output" flag.
                     if tool_name in ("Edit", "Write", "MultiEdit"):
                         fp = tool_input.get("file_path", "")
+                        if fp:
+                            files_modified.add(fp)
+                    elif tool_name == "NotebookEdit":
+                        fp = tool_input.get("notebook_path", "")
                         if fp:
                             files_modified.add(fp)
 
@@ -330,7 +371,7 @@ def extract_first_prompt(path: str) -> str:
         else:
             continue
 
-        text = extract_text_from_content(content).strip()
+        text = human_prompt_from_content(content).strip()
 
         # Surface slash-command invocations (tag-wrapped) as their real intent
         slash = parse_slash_command(text)
